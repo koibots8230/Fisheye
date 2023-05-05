@@ -10,10 +10,12 @@ To Do:
     - Don't spend too long on this if it isn't working
 
 If Photon is good:
+
     - [ ] Fine tune it for all the cameras
     - [ ] Put Beelink in read only mode
 
 If Photon is innacurate or otherwise bad:
+
     - [ ] Figure out what framework we want to use for a custom solution (OpenCV?)
     - [ ] Create said custom solution (KoiVision?)
         - [ ] Get it working on a laptop camera
