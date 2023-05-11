@@ -20,11 +20,12 @@ To Do:
 - [ ] Create said custom solution (KoiVision?)
     - [ ] Get it working on a laptop camera
         - Refer to [This](https://docs.wpilib.org/en/stable/docs/software/vision-processing/apriltag/index.html) for some basic instructions
-        - [ ] Filtering
+        - [x] Filtering
         - [ ] Calibration
         - [ ] 2d Detection
         - [ ] 3d Detection
     - [ ] Get custom solution running on Beelink
+        - [ ] Get Beelink setup for running it
         - [ ] Multi threading support
         - [ ] Get it working with USB cameras
             - [ ] USB camera detection/use
