@@ -3,7 +3,7 @@ The repository for team 8230's 2024 Vision System
 
 To Do:
 
-- [ ] Buy the vision stuff
+- [x] Buy the vision stuff
 - [ ] Get PhotonVision running on Beelink
 - [ ] Get multiple cameras running with Photon
 - [ ] See if it's accurate/otherwise able to be used (networking, etc.)
@@ -18,21 +18,18 @@ To Do:
 
 - [ ] Figure out what framework we want to use for a custom solution (OpenCV?)
 - [ ] Create said custom solution (KoiVision?)
-    - [ ] Get it working on a laptop camera
-        - Refer to [This](https://docs.wpilib.org/en/stable/docs/software/vision-processing/apriltag/index.html) for some basic instructions
-        - [x] Filtering
-        - [ ] Calibration
-        - [ ] 2d Detection
-        - [ ] 3d Detection
-    - [ ] Get custom solution running on Beelink
-        - [ ] Get Beelink setup for running it
-        - [ ] Multi threading support
-        - [ ] Get it working with USB cameras
-            - [ ] USB camera detection/use
-            - [ ] Work out multi camera support
-        - [ ] Figure out data transfer
-            - [ ] Java interface
-            - [ ] Reciving commands
-            - [ ] Outputting data
+    - [ ] The power of libraries
+        - [ ] Finalize which library to use
+            - [ ] Test, test, test! (Partially done)
+- [ ] Get custom solution running on Beelink
+    - [x] Get Beelink setup for running it
+    - [ ] Multi threading support
+    - [ ] Get it working with USB cameras
+        - [ ] USB camera detection/use
+        - [ ] Work out multi camera support
+    - [ ] Figure out data transfer
+        - [ ] Java interface
+        - [ ] Reciving commands
+        - [ ] Outputting data
 - [ ] Fine tune for all cameras
 - [ ] Put Beelink in read only mode
