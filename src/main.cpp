@@ -1,78 +1,139 @@
+#include <algorithm>
+#include <opencv2/core/persistence.hpp>
+#include <opencv2/videoio.hpp>
+#include <thread>
 #include <iostream>
 #include <chrono>
+#include <fstream>
+#include <opencv2/calib3d.hpp>
+#include <opencv2/core/hal/interface.h>
+#include <opencv2/core/matx.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/objdetect/aruco_detector.hpp>
+#include <opencv2/objdetect/aruco_dictionary.hpp>
+#include "json.hpp"
 
 #include "opencv2/opencv.hpp"
-
-extern "C" {
-#include "apriltag.h"
-#include "tag16h5.h"
-#include "apriltag_pose.h"
-#include "common/getopt.h"
-}
+#include "opencv2/aruco.hpp"
 
 using namespace std;
 using namespace cv;
 
-int main() {
-    apriltag_family_t *family = tag16h5_create();
-    apriltag_detector_t *detector = apriltag_detector_create();
-    apriltag_detector_add_family(detector, family);
+void doVision(Mat frame, Mat cameraMatrix, Mat distCoeffs, Mat objPoints) {
+    aruco::DetectorParameters detectorParams = aruco::DetectorParameters();
 
-    detector->quad_decimate = 5; //decimate
-    detector->quad_sigma = 0; //blur
-    detector->nthreads = 1;
-    detector->debug = 1;
-    detector->refine_edges = 1;
+    detectorParams.cornerRefinementMethod = aruco::CORNER_REFINE_APRILTAG;
+    detectorParams.cornerRefinementMaxIterations = 5;
+    detectorParams.useAruco3Detection = true;
 
-    Mat frame;
-    Mat im;
+    aruco::Dictionary dict = aruco::getPredefinedDictionary(aruco::DICT_APRILTAG_36h11);
+    aruco::ArucoDetector detector(dict, detectorParams);
 
-    apriltag_detection_info_t info;
-        info.tagsize = 0.1524;
-        info.fx = 618.78479691;
-        info.fy = 616.21150452;
-        info.cx = 454.81063213;
-        info.cy = 238.92290301;
-    
-    //while(camera.isOpened()) {
-        //camera >> frame;
-        auto start = chrono::high_resolution_clock::now();
+    vector<int> ids;
+    vector<vector<Point2f>> corners;
 
-        frame = imread("/home/koibots/Vision/main/src/apriltag.jpg", IMREAD_GRAYSCALE);
-        resize(frame, im, Size(854, 480));
-        image_u8_t image = { 
-            .width = im.cols,
-            .height = im.rows,
-            .stride = im.cols,
-            .buf = im.data
-        };
+    Mat rvec(3,1,DataType<double>::type);
+    Mat tvec(3,1,DataType<double>::type);
 
-        zarray_t *detections = apriltag_detector_detect(detector, &image);
+    auto start = chrono::high_resolution_clock::now();
 
-        for (int count = 0; count < zarray_size(detections); ++count) {
-            apriltag_detection_t *detection;
-            zarray_get(detections, count, &detection);
+    detector.detectMarkers(frame, corners,ids);
 
-            info.det = detection;
+    if(ids.size() > 0) {
+        solvePnP(objPoints, corners.at(0), cameraMatrix, distCoeffs, rvec, tvec, false, SOLVEPNP_IPPE_SQUARE);
+    }
 
-            apriltag_pose_t pose;
+    auto stop = chrono::high_resolution_clock::now();
 
-            estimate_pose_for_tag_homography(&info, &pose);
+    double timeTaken = chrono::duration_cast<chrono::milliseconds>(stop-start).count();
 
-            cout << "Rotation Matrix:" << endl << matd_get(pose.R, 0, 0) << ", " << matd_get(pose.R, 0, 1) << ", " << matd_get(pose.R, 0, 2) << endl;
-            cout << matd_get(pose.R, 1, 0) << ", " << matd_get(pose.R, 1, 1) << ", " << matd_get(pose.R, 1, 2) << endl;
-            cout << matd_get(pose.R, 2, 0) << ", " << matd_get(pose.R, 2, 1) << ", " << matd_get(pose.R, 2, 2) << endl;
-            cout << "Pose: " << endl << matd_get(pose.t, 0, 0) << ", " << matd_get(pose.t, 0, 1) << ", " << matd_get(pose.t, 0, 2) << endl;
-        }
+    cout << "Time Taken: " << timeTaken << "ms" << endl;
 
-        auto stop = chrono::high_resolution_clock::now();
-
-        double timeTaken = chrono::duration_cast<chrono::milliseconds>(stop-start).count();
-
-        cout << "Time Taken: " << timeTaken << "ms" << endl;
-
-    apriltag_detector_destroy(detector);
-    tag16h5_destroy(family);
-    
-    return 0;
+    cout << "tvec:" << endl <<  tvec << endl;
+    cout << "rvec:" << endl <<  rvec << endl;
 }
+
+void readJSON(vector<Mat> &cameraMatricies, vector<Mat> &cameraDistCoeffs) {
+    ifstream camJSON("../src/cameras.json");
+    nlohmann::json camData = nlohmann::json::parse(camJSON);
+    for (auto camera : camData) {
+        Mat cameraMatrix(3,3,DataType<double>::type);
+        setIdentity(cameraMatrix);
+    
+        cameraMatrix.at<double>(0, 0) = camera["matrix"]["fx"];
+        cameraMatrix.at<double>(0, 2) = camera["matrix"]["cx"];
+        cameraMatrix.at<double>(1, 1) = camera["matrix"]["fy"];
+        cameraMatrix.at<double>(1, 2) = camera["matrix"]["cy"];
+
+        cameraMatricies.push_back(cameraMatrix);
+
+        cout << camera["distCoeffs"]["k1"];
+        Mat distCoeffs(5,1,DataType<double>::type);
+        distCoeffs.at<double>(0) = camera["distCoeffs"]["k1"];
+        distCoeffs.at<double>(1) = camera["distCoeffs"]["k2"];
+        distCoeffs.at<double>(2) = camera["distCoeffs"]["p1"];
+        distCoeffs.at<double>(3) = camera["distCoeffs"]["p2"];
+        distCoeffs.at<double>(4) = camera["distCoeffs"]["k3"];
+
+        cameraDistCoeffs.push_back(distCoeffs);
+    }
+}
+
+int main() {
+
+    Mat image, imcopy;
+
+    vector<Mat> cameraMatricies;
+    vector<Mat> cameraDistCoeffs;
+
+    readJSON(cameraMatricies, cameraDistCoeffs);
+
+    double tagSizeMeters = 0.17272;
+
+    Mat objPoints(4, 3, DataType<double>::type);
+
+    objPoints.row(0).col(0) = -tagSizeMeters/2;
+    objPoints.row(0).col(1) = tagSizeMeters/2;
+    objPoints.row(0).col(2) = 0;
+    objPoints.row(1).col(0) = tagSizeMeters/2;
+    objPoints.row(1).col(1) = tagSizeMeters/2;
+    objPoints.row(1).col(2) = 0;
+    objPoints.row(2).col(0) = tagSizeMeters/2;
+    objPoints.row(2).col(1) = -tagSizeMeters/2;
+    objPoints.row(2).col(2) = 0;
+    objPoints.row(3).col(0) = -tagSizeMeters/2;
+    objPoints.row(3).col(1) = -tagSizeMeters/2;
+    objPoints.row(3).col(2) = 0;
+
+    vector<VideoCapture> cameras;
+
+    for (int i = 0; i < 4; i++) {
+        VideoCapture cap;
+        cap.open(i);
+
+        if (cap.isOpened()) {
+            cameras.push_back(cap);
+        } else {
+            cerr << "ERROR! Unable to open camera " << i << endl;
+            return -1;
+        }
+    }
+
+    while(true) {
+        vector<int> cameraSet = {0, 1, 2, 3};
+
+        cameras[cameraSet[0]].read(image);
+        thread thread1(doVision, image, cameraMatricies[cameraSet[0]], cameraDistCoeffs[cameraSet[0]], objPoints);
+
+        cameras[cameraSet[1]].read(image);
+        thread thread2(doVision, image, cameraMatricies[cameraSet[1]], cameraDistCoeffs[cameraSet[1]], objPoints);
+
+        thread1.join();
+        thread2.join();
+
+        iter_swap(cameraSet.begin(), cameraSet.begin() + 2);
+        iter_swap(cameraSet.begin() + 1, cameraSet.end());
+    }
+
+    return 1;
+}  

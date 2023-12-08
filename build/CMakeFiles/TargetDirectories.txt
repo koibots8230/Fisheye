@@ -1,3 +1,0 @@
-/home/koibots/Vision/Hurricane/build/CMakeFiles/vision.dir
-/home/koibots/Vision/Hurricane/build/CMakeFiles/edit_cache.dir
-/home/koibots/Vision/Hurricane/build/CMakeFiles/rebuild_cache.dir
