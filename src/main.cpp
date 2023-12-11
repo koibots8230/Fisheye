@@ -1,5 +1,7 @@
 #include <algorithm>
+#include <opencv2/core/cvstd.hpp>
 #include <opencv2/core/persistence.hpp>
+#include <opencv2/highgui.hpp>
 #include <opencv2/videoio.hpp>
 #include <thread>
 #include <iostream>
@@ -20,6 +22,7 @@ using namespace std;
 using namespace cv;
 
 void doVision(Mat frame, Mat cameraMatrix, Mat distCoeffs, Mat objPoints) {
+
     aruco::DetectorParameters detectorParams = aruco::DetectorParameters();
 
     detectorParams.cornerRefinementMethod = aruco::CORNER_REFINE_APRILTAG;
@@ -36,11 +39,19 @@ void doVision(Mat frame, Mat cameraMatrix, Mat distCoeffs, Mat objPoints) {
     Mat tvec(3,1,DataType<double>::type);
 
     auto start = chrono::high_resolution_clock::now();
+    
+    if (!frame.empty()) {
+        detector.detectMarkers(frame, corners, ids);
 
-    detector.detectMarkers(frame, corners,ids);
+    } else {
+        cerr << "WARN: Empty Frame" << endl;
+    }
 
     if(ids.size() > 0) {
         solvePnP(objPoints, corners.at(0), cameraMatrix, distCoeffs, rvec, tvec, false, SOLVEPNP_IPPE_SQUARE);
+
+        cout << "tvec:" << endl <<  tvec << endl;
+        cout << "rvec:" << endl <<  rvec << endl;
     }
 
     auto stop = chrono::high_resolution_clock::now();
@@ -48,45 +59,46 @@ void doVision(Mat frame, Mat cameraMatrix, Mat distCoeffs, Mat objPoints) {
     double timeTaken = chrono::duration_cast<chrono::milliseconds>(stop-start).count();
 
     cout << "Time Taken: " << timeTaken << "ms" << endl;
-
-    cout << "tvec:" << endl <<  tvec << endl;
-    cout << "rvec:" << endl <<  rvec << endl;
 }
 
-void readJSON(vector<Mat> &cameraMatricies, vector<Mat> &cameraDistCoeffs) {
+void readJSON(vector<Mat> &cameraMatricies, vector<Mat> &cameraDistCoeffs, vector<String> &camIDs) {
     ifstream camJSON("../src/cameras.json");
     nlohmann::json camData = nlohmann::json::parse(camJSON);
     for (auto camera : camData) {
-        Mat cameraMatrix(3,3,DataType<double>::type);
-        setIdentity(cameraMatrix);
-    
-        cameraMatrix.at<double>(0, 0) = camera["matrix"]["fx"];
-        cameraMatrix.at<double>(0, 2) = camera["matrix"]["cx"];
-        cameraMatrix.at<double>(1, 1) = camera["matrix"]["fy"];
-        cameraMatrix.at<double>(1, 2) = camera["matrix"]["cy"];
+        if (camera["id"] != "None") {
+            camIDs.push_back(camera["id"]);
 
-        cameraMatricies.push_back(cameraMatrix);
+            Mat cameraMatrix(3,3,DataType<double>::type);
+            setIdentity(cameraMatrix);
+        
+            cameraMatrix.at<double>(0, 0) = camera["matrix"]["fx"];
+            cameraMatrix.at<double>(0, 2) = camera["matrix"]["cx"];
+            cameraMatrix.at<double>(1, 1) = camera["matrix"]["fy"];
+            cameraMatrix.at<double>(1, 2) = camera["matrix"]["cy"];
 
-        cout << camera["distCoeffs"]["k1"];
-        Mat distCoeffs(5,1,DataType<double>::type);
-        distCoeffs.at<double>(0) = camera["distCoeffs"]["k1"];
-        distCoeffs.at<double>(1) = camera["distCoeffs"]["k2"];
-        distCoeffs.at<double>(2) = camera["distCoeffs"]["p1"];
-        distCoeffs.at<double>(3) = camera["distCoeffs"]["p2"];
-        distCoeffs.at<double>(4) = camera["distCoeffs"]["k3"];
+            cameraMatricies.push_back(cameraMatrix);
 
-        cameraDistCoeffs.push_back(distCoeffs);
+            Mat distCoeffs(5,1,DataType<double>::type);
+            distCoeffs.at<double>(0) = camera["distCoeffs"]["k1"];
+            distCoeffs.at<double>(1) = camera["distCoeffs"]["k2"];
+            distCoeffs.at<double>(2) = camera["distCoeffs"]["p1"];
+            distCoeffs.at<double>(3) = camera["distCoeffs"]["p2"];
+            distCoeffs.at<double>(4) = camera["distCoeffs"]["k3"];
+
+            cameraDistCoeffs.push_back(distCoeffs);
+        }
     }
 }
 
 int main() {
 
-    Mat image, imcopy;
+    Mat image1, image2;
 
     vector<Mat> cameraMatricies;
     vector<Mat> cameraDistCoeffs;
+    vector<String> cameraIDs;
 
-    readJSON(cameraMatricies, cameraDistCoeffs);
+    readJSON(cameraMatricies, cameraDistCoeffs, cameraIDs);
 
     double tagSizeMeters = 0.17272;
 
@@ -107,14 +119,13 @@ int main() {
 
     vector<VideoCapture> cameras;
 
-    for (int i = 0; i < 4; i++) {
-        VideoCapture cap;
-        cap.open(i);
-
+    // TODO: Run w/ 4 cameras
+    for (int i = 0; i < cameraIDs.size(); i++) {
+        VideoCapture cap(cameraIDs[i]);
         if (cap.isOpened()) {
             cameras.push_back(cap);
         } else {
-            cerr << "ERROR! Unable to open camera " << i << endl;
+            cerr << "ERROR: Camera " << i << " could not be opened!" << endl;
             return -1;
         }
     }
@@ -122,17 +133,18 @@ int main() {
     while(true) {
         vector<int> cameraSet = {0, 1, 2, 3};
 
-        cameras[cameraSet[0]].read(image);
-        thread thread1(doVision, image, cameraMatricies[cameraSet[0]], cameraDistCoeffs[cameraSet[0]], objPoints);
+        cameras[1].read(image2);
+        cameras[0].read(image1);
 
-        cameras[cameraSet[1]].read(image);
-        thread thread2(doVision, image, cameraMatricies[cameraSet[1]], cameraDistCoeffs[cameraSet[1]], objPoints);
+        thread thread1(doVision, image1, cameraMatricies[cameraSet[0]], cameraDistCoeffs[cameraSet[0]], objPoints);
+
+        thread thread2(doVision, image2, cameraMatricies[cameraSet[1]], cameraDistCoeffs[cameraSet[1]], objPoints);
 
         thread1.join();
         thread2.join();
 
-        iter_swap(cameraSet.begin(), cameraSet.begin() + 2);
-        iter_swap(cameraSet.begin() + 1, cameraSet.end());
+        // iter_swap(cameraSet.begin(), cameraSet.begin() + 2);
+        // iter_swap(cameraSet.begin() + 1, cameraSet.end());
     }
 
     return 1;

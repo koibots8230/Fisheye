@@ -1,5 +1,6 @@
 { 
     "Cam1" : {
+        "id" : "/dev/v4l/by-id/usb-Arducam_Technology_Co.__Ltd._Camera_1_UC762-video-index0",
         "matrix" : {
             "fx" : 889.80244844,
             "fy" : 890.61750633,
@@ -13,43 +14,46 @@
             "k3" : -0.27677269
         }
     }, "Cam2" : {
+        "id" : "/dev/v4l/by-id/usb-Arducam_Technology_Co.__Ltd._Camera_2_UC762-video-index0",
         "matrix" : {
-            "fx" : 1,
-            "fy" : 1,
-            "cx" : 1,
-            "cy" : 1
-        }, "distcoeffs": {
-            "1" : 1,
-            "2" : 1,
-            "3" : 1,
-            "4" : 1,
-            "5" : 1
+            "fx" : 887.40929214,
+            "fy" : 888.09601891,
+            "cx" : 628.08592461,
+            "cy" : 359.14146524
+        }, "distCoeffs": {
+            "k1" : 1.42665296e-02,
+            "k2" : 2.86900572e-02,
+            "p1" : -3.69530885e-03,
+            "p2" : 2.98428390e-06,
+            "k3" : -1.63626733e-01
         }
     }, "Cam3" : {
+        "id" : "None",
         "matrix" : {
             "fx" : 1,
             "fy" : 1,
             "cx" : 1,
             "cy" : 1
-        }, "distcoeffs": {
-            "1" : 1,
-            "2" : 1,
-            "3" : 1,
-            "4" : 1,
-            "5" : 1
+        }, "distCoeffs": {
+            "k1" : 0,
+            "k2" : 0,
+            "p1" : 0,
+            "p2" : 0,
+            "k3" : 0
         }
     }, "Cam4" : {
+        "id" : "None",
         "matrix" : {
             "fx" : 1,
             "fy" : 1,
             "cx" : 1,
             "cy" : 1
-        }, "distcoeffs": {
-            "1" : 1,
-            "2" : 1,
-            "3" : 1,
-            "4" : 1,
-            "5" : 1
+        }, "distCoeffs": {
+            "k1" : 0,
+            "k2" : 0,
+            "p1" : 0,
+            "p2" : 0,
+            "k3" : 0
         }
     }
 }
