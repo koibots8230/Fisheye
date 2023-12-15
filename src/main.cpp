@@ -15,13 +15,18 @@
 #include <opencv2/objdetect/aruco_dictionary.hpp>
 #include "json.hpp"
 
+#include <networktables/NetworkTableInstance.h>
+#include <networktables/NetworkTable.h>
+#include <networktables/DoubleTopic.h>
+
 #include "opencv2/opencv.hpp"
 #include "opencv2/aruco.hpp"
 
 using namespace std;
 using namespace cv;
+using namespace nt;
 
-void doVision(Mat frame, Mat cameraMatrix, Mat distCoeffs, Mat objPoints) {
+void doVision(Mat frame, Mat cameraMatrix, Mat distCoeffs, Mat objPoints, vector<DoubleArrayPublisher> publishers) {
 
     aruco::DetectorParameters detectorParams = aruco::DetectorParameters();
 
@@ -49,16 +54,15 @@ void doVision(Mat frame, Mat cameraMatrix, Mat distCoeffs, Mat objPoints) {
 
     if(ids.size() > 0) {
         solvePnP(objPoints, corners.at(0), cameraMatrix, distCoeffs, rvec, tvec, false, SOLVEPNP_IPPE_SQUARE);
+        int64_t timeStamp = nt::Now();
 
-        cout << "tvec:" << endl <<  tvec << endl;
-        cout << "rvec:" << endl <<  rvec << endl;
+        publishers[0].set({tvec.at(0), tvec.at{1}, tvec.at{2}}, timeStamp);
+        publishers[1].set({rvec.at(0), rvec.at{1}, rvec.at{2}}, timeStamp);
     }
 
     auto stop = chrono::high_resolution_clock::now();
 
     double timeTaken = chrono::duration_cast<chrono::milliseconds>(stop-start).count();
-
-    cout << "Time Taken: " << timeTaken << "ms" << endl;
 }
 
 void readJSON(vector<Mat> &cameraMatricies, vector<Mat> &cameraDistCoeffs, vector<String> &camIDs) {
@@ -130,15 +134,31 @@ int main() {
         }
     }
 
+    auto ntInstance = NetworkTablesInstance::GetDefault();
+    ntTable = ntInstance.GetTable("fisheye");
+    vector<vector<DoubleArrayPublisher>> publishers;
+
+    for (int i = 0; i < 4; i++) {
+        DoubleArrayPublisher tvecPublisher = ntTable->GetDoubleTopic("camera" << i << "tvec").Publish();
+        DoubleArrayPublisher rvecPublisher = ntTable->GetDoubleTopic("camera" << i << "rvec").Publish();
+        publishers[i].push_back(tvecPublisher);
+        publishers[i].push_back(rvecPublisher);
+    }
+
+    ntInstance.StartClient4("Fisheye");
+    ntInstance.SetServerTeam(9033);
+    inst.SetServer("host", NT_DEFAULT_PORT4);
+
+
     while(true) {
         vector<int> cameraSet = {0, 1, 2, 3};
 
         cameras[1].read(image2);
         cameras[0].read(image1);
 
-        thread thread1(doVision, image1, cameraMatricies[cameraSet[0]], cameraDistCoeffs[cameraSet[0]], objPoints);
+        thread thread1(doVision, image1, cameraMatricies[cameraSet[0]], cameraDistCoeffs[cameraSet[0]], objPoints, publishers[cameraSet[0]]);
 
-        thread thread2(doVision, image2, cameraMatricies[cameraSet[1]], cameraDistCoeffs[cameraSet[1]], objPoints);
+        thread thread2(doVision, image2, cameraMatricies[cameraSet[1]], cameraDistCoeffs[cameraSet[1]], objPoints, publishers[cameraSet[1]]);
 
         thread1.join();
         thread2.join();
