@@ -7,8 +7,6 @@ import edu.wpi.first.math.geometry.Rotation3d;
 
 public class Constants {
     public static class Vision {
-        public static final double ALLOWED_ANGLE_ERROR = 10;
-        
         public static final Pose2d[] CAMERA_DISTANCES_TO_CENTER_METERS = {
             new Pose2d(0, 0, new Rotation2d(Math.toRadians(0))),
             new Pose2d(0, 0, new Rotation2d(Math.toRadians(90))),
@@ -41,9 +39,11 @@ public class Constants {
         public static final double FIELD_WIDTH_METERS = 8.02;
         public static final double FIELD_LENGTH_METERS = 16.54;
 
-        public static final Pose3d[] TAG_POSES_METERS = {
-            new Pose3d(1.5, .5, 1, new Rotation3d(0, 0, 0)),
-            new Pose3d(2, .5, 1, new Rotation3d(0, 0, 0))
+        public static final double MAX_MEASUREMENT_DIFFERENCE_METERS = 1;
+
+        public static final Pose2d[] TAG_POSES_METERS = {
+            new Pose2d(1.5, .5, new Rotation2d()),
+            new Pose2d(2, .5, new Rotation2d())
         };
     }
 }

@@ -2,13 +2,13 @@ package frc.robot.subsystems;
 
 import java.util.LinkedList;
 
-import edu.wpi.first.math.Vector;
+import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.Nat;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
-import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.math.numbers.*;
 import edu.wpi.first.networktables.DoubleArraySubscriber;
 import edu.wpi.first.networktables.IntegerSubscriber;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -16,15 +16,13 @@ import edu.wpi.first.networktables.TimestampedDoubleArray;
 import edu.wpi.first.networktables.TimestampedInteger;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.utils.NAVX;
 
 public class VisionSubsystem extends SubsystemBase {
 
     private DoubleArraySubscriber[][] vecSubscribers;
     private IntegerSubscriber[] idSubscribers;
     private NetworkTableInstance inst = NetworkTableInstance.getDefault();
-
-    private LinkedList<Pose2d> poses;
-    private LinkedList<Integer> timestamps;
 
     public VisionSubsystem() {
         vecSubscribers = new DoubleArraySubscriber[4][2];
@@ -41,26 +39,27 @@ public class VisionSubsystem extends SubsystemBase {
     }
 
     private Pose2d translateToFieldPose(double[] translation, double[] rotation, int tagId, int camera) {
-        Vector<N3> rvec = new Vector<>(Nat.N3());
-        rvec.set(0, 0, rotation[0]);
-        rvec.set(1, 0, rotation[1]);
-        rvec.set(2, 0, rotation[2]);
-        Pose2d camToTagPose = new Pose2d(-translation[0], translation[2], new Rotation3d(rvec).toRotation2d());
+        int count = 0;
+        Matrix<N3, N3> rotMatrix = new Matrix<>(Nat.N3(), Nat.N3());
+        for (int a = 0; a < 3; a++) {
+            for (int b = 0; b < 3; b++) {
+                rotMatrix.set(b, a, rotation[count]);
+                count++;
+            }
+        }
+        rotMatrix.times(-1);
 
-        Rotation2d botToTagRotation = new Rotation2d(
-            camToTagPose.getRotation().getRadians() - Constants.Vision.CAMERA_DISTANCES_TO_CENTER_METERS[camera].getRotation().getRadians()); 
-        // If it turns out to be clockwise, make cam rotation negative
+        Matrix<N3, N1> transVec = new Matrix<>(Nat.N3(), Nat.N1());
+        transVec.set(0, 0, translation[0]);
+        transVec.set(1, 0, translation[1]);
+        transVec.set(2, 0, translation[2]);
+        Matrix<N3, N1> tagToCamTrans = rotMatrix.times(transVec);
 
-        double botToTagX = (botToTagRotation.getDegrees() > 180) ? 
-            -camToTagPose.getX() + Constants.Vision.CAMERA_DISTANCES_TO_CENTER_METERS[camera].getX() : 
-            camToTagPose.getX() + Constants.Vision.CAMERA_DISTANCES_TO_CENTER_METERS[camera].getX();
-        double botToTagY = (botToTagRotation.getDegrees() > 90 && botToTagRotation.getDegrees() < 270) ? 
-            -camToTagPose.getY() + Constants.Vision.CAMERA_DISTANCES_TO_CENTER_METERS[camera].getY() : 
-            camToTagPose.getY() + Constants.Vision.CAMERA_DISTANCES_TO_CENTER_METERS[camera].getY();
-        Pose2d botToTagPose = new Pose2d(botToTagX, botToTagY, botToTagRotation);
-            
-        
-        return null;
+        double hypotenuse = Math.sqrt(Math.pow(tagToCamTrans.get(2, 0), 2) + Math.pow(tagToCamTrans.get(0, 0), 2));
+        double hypAngle = Constants.Vision.TAG_POSES_METERS[tagId].getRotation().getRadians() + 
+            Math.atan(tagToCamTrans.get(0, 0)/tagToCamTrans.get(0, 2));
+
+        return new Pose2d(hypotenuse * Math.cos(hypAngle), hypotenuse * Math.sin(hypAngle), new Rotation2d(NAVX.get().getYaw()));
     }
 
     @Override
@@ -71,13 +70,14 @@ public class VisionSubsystem extends SubsystemBase {
             TimestampedInteger[] ids = idSubscribers[a].readQueue();
             for(int b = 0; b < ids.length; b++) {
                 if(rvec[b].timestamp == tvec[b].timestamp && tvec[b].timestamp == ids[b].timestamp) {
-                    translateToFieldPose(tvec[b].value, rvec[b].value, (int) ids[a].value, a);
+                    Pose2d pose = translateToFieldPose(tvec[b].value, rvec[b].value, (int) ids[a].value, a);
+                    if (pose.getX() > 0 && pose.getX() < Constants.Vision.FIELD_WIDTH_METERS && 
+                        pose.getY() > 0 && pose.getY() < Constants.Vision.FIELD_LENGTH_METERS &&
+                        Math.abs(pose.getX() - drivetrain.getposemethod().getX()) < 1 && Math.abs(pose.getY() - drivetrain.getposemethod().getY()) < 1) {
+                            drivetrain.addmeasurementmethod(pose, (double) ids[b].timestamp);
+                    }
                 }
             }
         }
-    }
-
-    public LinkedList<Pose2d> getPoseQueue() {
-        return poses;
     }
 }
