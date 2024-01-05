@@ -73,8 +73,9 @@ public class VisionSubsystem extends SubsystemBase {
                     Pose2d pose = translateToFieldPose(tvec[b].value, rvec[b].value, (int) ids[a].value, a);
                     if (pose.getX() > 0 && pose.getX() < Constants.Vision.FIELD_WIDTH_METERS && 
                         pose.getY() > 0 && pose.getY() < Constants.Vision.FIELD_LENGTH_METERS &&
-                        Math.abs(pose.getX() - drivetrain.getposemethod().getX()) < 1 && Math.abs(pose.getY() - drivetrain.getposemethod().getY()) < 1) {
-                            drivetrain.addmeasurementmethod(pose, (double) ids[b].timestamp);
+                        Math.abs(pose.getX() - drivetrain.getposemethod().getX()) < Constants.Vision.MAX_MEASUREMENT_DIFFERENCE_METERS && //TODO: Replace "drivetrain.getposemethod()" with an actual pose get method
+                        Math.abs(pose.getY() - drivetrain.getposemethod().getY()) < Constants.Vision.MAX_MEASUREMENT_DIFFERENCE_METERS) { //TODO: Replace "drivetrain.getposemethod()" with an actual pose get method
+                            drivetrain.addmeasurementmethod(pose, (double) ids[b].timestamp); // TODO: Replace with actual method to add the measurement
                     }
                 }
             }
