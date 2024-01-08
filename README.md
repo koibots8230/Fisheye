@@ -4,14 +4,16 @@ The repository for team 8230's 2024 Vision System
 To Do:
 
 - [x] Buy the vision stuff
-- [ ] Make solution
+- [x] Make solution
     -  [x] Detect tags
     -  [x] Pose estimation
     -  [x] Multi camera support
-    -  [ ] Networking
-    -  [ ] Java library thing
+    -  [x] Networking
+    -  [x] Robot java side
 - [ ] Get solution running on beelink
     - [x] Operating system running (alpine?)
-    - [ ] Get proper packages
-    - [ ] Get the code on it
-    - [ ] Make it run
+    - [x] Get proper packages
+    - [x] Get the code on it
+    - [x] Make it run
+    - [ ] Run on startup
+    - [ ] Read-only mode
