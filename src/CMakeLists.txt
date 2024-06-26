@@ -7,7 +7,7 @@ find_package(wpilib REQUIRED)
 include_directories(${wpilib_INCLUDE_DIRS})
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-add_executable(Vision main.cpp)
+add_executable(fisheye main.cpp)
 
-target_link_libraries(Vision ${OpenCV_LIBS})
-target_link_libraries(Vision ntcore)
+target_link_libraries(fisheye ${OpenCV_LIBS})
+target_link_libraries(fisheye ntcore)
