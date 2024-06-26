@@ -1,0 +1,23 @@
+{
+    "topicNames": {
+        "0": {
+            "0": "Cam1Tvec",
+            "1": "Cam1Rvec",
+            "2": "Cam1Ids"
+        }, "1": {
+            "0": "Cam2Tvec",
+            "1": "Cam2Rvec",
+            "2": "Cam2Ids"
+        }, "2": {
+            "0": "Cam3Tvec",
+            "1": "Cam3Rvec",
+            "2": "Cam3Ids"
+        }, "3": {
+            "0": "Cam4Tvec",
+            "1": "Cam4Rvec",
+            "2": "Cam4Ids"
+        }
+    }, 
+    "teamNumber": 8230,
+    "serverName": "host"
+}
