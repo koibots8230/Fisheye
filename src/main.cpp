@@ -28,10 +28,6 @@ using namespace cv;
 using namespace nt;
 
 void doVision(Mat frame, Mat cameraMatrix, Mat distCoeffs, Mat objPoints, aruco::DetectorParameters params, aruco::Dictionary dict, vector<vector<vector<double>>>& out, vector<int>& idsOut) {
-    Mat flippedFrame;
-
-    flip(frame, flippedFrame, -1);
-
     aruco::ArucoDetector detector(dict, params);
     
     vector<int> ids;
@@ -42,10 +38,14 @@ void doVision(Mat frame, Mat cameraMatrix, Mat distCoeffs, Mat objPoints, aruco:
     Mat rmat(3,3,DataType<double>::type);
     Mat tvec(3,1,DataType<double>::type);
     
-    if (!flippedFrame.empty()) {
-        detector.detectMarkers(flippedFrame, corners, ids, rejectedCorners);
+    if (!frame.empty()) {
+        detector.detectMarkers(frame, corners, ids, rejectedCorners);
     } else {
         cerr << "WARN: Empty Frame" << endl;
+    }
+    
+    if (ids.size() > 0) {
+        out.clear();
     }
 
     for(int i = 0; i < ids.size(); i++) {
@@ -99,7 +99,6 @@ void readJSON(vector<Mat> &cameraMatricies, vector<Mat> &cameraDistCoeffs, vecto
 }
 
 int main() {
-    cout << cv::getBuildInformation() << endl;
     Mat image1, image2;
 
     vector<Mat> cameraMatricies;
@@ -127,8 +126,7 @@ int main() {
 
     vector<VideoCapture> cameras;
 
-    // TODO: Run w/ 4 cameras
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 3; i++) {
         VideoCapture cap;
         cap.open(cameraIDs[i]);
         if (cap.isOpened()) {
@@ -154,35 +152,55 @@ int main() {
 
     ifstream ntJSON("/root/Fisheye/src/networkTables.json");
     nlohmann::json ntData = nlohmann::json::parse(ntJSON);
+    
+    auto options = new nt::PubSubOptions();
+    options->sendAll = true;
+    options->keepDuplicates = true;
 
     for(int i = 0; i < 4; i++) {
         for(int j = 0; j < 2; j++) {
             string thing = ntData["topicNames"][to_string(i)][to_string(j)];
             string_view thing2 = thing;
-            publishers[i][j] = ntTable->GetDoubleArrayTopic(thing2).Publish();
+            DoubleArrayTopic vecTopic = ntTable->GetDoubleArrayTopic(thing2);
+            vecTopic.SetPersistent(false);
+            vecTopic.SetCached(false);
+            publishers[i][j] = vecTopic.Publish(*options);
             cout << "Pub " << i << j << " has been made" << endl;
         }
         string thing = ntData["topicNames"][to_string(i)][to_string(2)];
         string_view thing2 = thing;
-        idPublishers[i] = ntTable->GetIntegerTopic(thing2).Publish();
+        IntegerTopic idTopic = ntTable->GetIntegerTopic(thing2);
+        idTopic.SetPersistent(false);
+        idTopic.SetCached(false);
+        idPublishers[i] = idTopic.Publish(*options);
         cout << "Pub " << i << 2 << " has been made" << endl; 
     }
     
     ntInst.StartClient4("fisheye");
     ntInst.SetServerTeam(8230);
     
+    ntInst.AddConnectionListener(true, [] (const nt::Event& event) {
+      if (event.Is(nt::EventFlags::kDisconnected)) {
+          NetworkTableInstance::GetDefault().StopClient();
+          NetworkTableInstance::GetDefault().StartClient4("fisheye");
+      }
+    });
+
     vector<vector<vector<vector<double>>>> outputs;
     outputs.resize(2);
     vector<vector<int>> idsOutput;
     idsOutput.resize(2);
     vector<int64_t> timestamps(2);
+
+    vector<int> cameraSet = {0, 1, 2};
     while(true) {
-        vector<int> cameraSet = {0, 1, 2, 3};
-  
-        cameras[0].read(image1);
-        timestamps[0] = nt::Now();
-        cameras[1].read(image2);
-        timestamps[1] = nt::Now();
+        outputs = {{{{0}, {0}}}, {{{0}, {0}}}};
+        idsOutput = {{0}, {0}};
+          
+        cameras[cameraSet[0]].read(image1);
+        timestamps[0] = nt::Now() + nt::GetServerTimeOffset(nt::GetDefaultInstance()).value_or(0);
+        cameras[cameraSet[1]].read(image2);
+        timestamps[1] = nt::Now() + nt::GetServerTimeOffset(nt::GetDefaultInstance()).value_or(0);
 
         thread thread1(doVision, image1, cameraMatricies[cameraSet[0]], cameraDistCoeffs[cameraSet[0]], objPoints, ref(detectParams), ref(dict), ref(outputs[0]), ref(idsOutput[0]));
 
@@ -191,19 +209,18 @@ int main() {
         thread1.join();
         thread2.join();
         
-	for(int a = 0; a < 2; a++) {
-            for(int b = 0; b < outputs[a].size(); b++) {
-                publishers[cameraSet[a]][0].Set(outputs[a][b][0], timestamps[a]);
-                publishers[cameraSet[a]][1].Set(outputs[a][b][1], timestamps[a]);
-                idPublishers[cameraSet[a]].Set(idsOutput[a][b], timestamps[a]);
+        if(nt::IsConnected(nt::GetDefaultInstance()) && timestamps[0] < 8.64e10) { 
+	    for(int a = 0; a < 2; a++) {
+                for(int b = 0; b < outputs[a].size(); b++) {
+                    publishers[cameraSet[a]][0].Set(outputs[a][b][0], timestamps[a]);
+                    publishers[cameraSet[a]][1].Set(outputs[a][b][1], timestamps[a]);
+                    idPublishers[cameraSet[a]].Set(idsOutput[a][b], timestamps[a]);
+                }
             }
-        }     
-        
-        outputs[0].clear();
-        outputs[1].clear();
+            cout << timestamps[0] << endl;
+        }
 
-        // iter_swap(cameraSet.begin(), cameraSet.begin() + 2);
-        // iter_swap(cameraSet.begin() + 1, cameraSet.end()); 
+        rotate(cameraSet.begin(), cameraSet.begin() + 1, cameraSet.end());
     }
 
     return 1;
