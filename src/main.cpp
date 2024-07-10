@@ -130,6 +130,7 @@ int main() {
         VideoCapture cap;
         cap.open(cameraIDs[i]);
         if (cap.isOpened()) {
+            cap.set(CAP_PROP_FOURCC, VideoWriter::fourcc('M', 'J', 'P', 'G'));
             cameras.push_back(cap);
         } else {
             cerr << "ERROR: Camera " << i << " could not be opened!" << endl;
@@ -198,9 +199,9 @@ int main() {
         idsOutput = {{0}, {0}};
           
         cameras[cameraSet[0]].read(image1);
-        timestamps[0] = nt::Now() + nt::GetServerTimeOffset(nt::GetDefaultInstance()).value_or(0);
+        timestamps[0] = nt::Now();
         cameras[cameraSet[1]].read(image2);
-        timestamps[1] = nt::Now() + nt::GetServerTimeOffset(nt::GetDefaultInstance()).value_or(0);
+        timestamps[1] = nt::Now();
 
         thread thread1(doVision, image1, cameraMatricies[cameraSet[0]], cameraDistCoeffs[cameraSet[0]], objPoints, ref(detectParams), ref(dict), ref(outputs[0]), ref(idsOutput[0]));
 
@@ -209,15 +210,15 @@ int main() {
         thread1.join();
         thread2.join();
         
-        if(nt::IsConnected(nt::GetDefaultInstance()) && timestamps[0] < 8.64e10) { 
+        if(nt::IsConnected(nt::GetDefaultInstance())) {
 	    for(int a = 0; a < 2; a++) {
                 for(int b = 0; b < outputs[a].size(); b++) {
                     publishers[cameraSet[a]][0].Set(outputs[a][b][0], timestamps[a]);
                     publishers[cameraSet[a]][1].Set(outputs[a][b][1], timestamps[a]);
                     idPublishers[cameraSet[a]].Set(idsOutput[a][b], timestamps[a]);
                 }
+                cout << timestamps[a] << endl;
             }
-            cout << timestamps[0] << endl;
         }
 
         rotate(cameraSet.begin(), cameraSet.begin() + 1, cameraSet.end());
