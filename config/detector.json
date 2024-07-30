@@ -1,0 +1,24 @@
+{
+    "tagSizeMeters": 0.1651,
+
+    "adaptiveThreshWinMin": 3,
+    "adaptiveThreshWinMax": 23,
+    "adaptiveThreshWinStep": 10,
+
+    "minMarkerPerimiterRate": 0.03,
+    "maxMarkerPerimiterRate": 4.0,
+
+    "minMarkerDistanceRate": 0.125,
+
+    "minDistanceToBorder": 10,
+
+    "perspectiveRemovePixelPerCell": 8,
+    "perspectiveRemoveIgnoredMarginPerCell": 0.25,
+
+    "maxErroneousBitsInBorderRate": 0.1875,
+    "errorCorrectionRate": 0.6,
+
+    "relativeCornerRefinmentWinSize": 0.3,
+    "cornerRefinementMaxIterations": 50,
+    "cornerRefinementMinAccuracy": 0.1
+}
