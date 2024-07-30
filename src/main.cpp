@@ -72,7 +72,7 @@ void findCamPose(Mat frame, Mat cameraMatrix, Mat distCoeffs, Mat objPoints, aru
 void readCameraJSON(vector<Mat> &cameraMatricies, vector<Mat> &cameraDistCoeffs, vector<String> &camIDs, vector<int> &resolution) {
     ifstream camJSON("/root/Fisheye/config/cameras.json");
     nlohmann::json camConfig = nlohmann::json::parse(camJSON);
-    for (auto camera : camConfig) {
+    for (auto camera : camConfig["Cameras"]) {
         camIDs.push_back(camera["id"]);
 
         Mat cameraMatrix;
@@ -83,11 +83,7 @@ void readCameraJSON(vector<Mat> &cameraMatricies, vector<Mat> &cameraDistCoeffs,
         cameraMatrix.at<double>(1, 1) = camera["matrix"]["fy"];
         cameraMatrix.at<double>(1, 2) = camera["matrix"]["cy"];
         cameraMatrix.at<double>(2, 2) = 1;
-        for (int a = 0; a < 3; a++) {
-        for (int b = 0; b < 3; b++) {
-        cout << cameraMatrix.at<double>(a, b) << " ";
-        }
-        cout << endl;}cout << endl; 
+ 
         cameraMatricies.push_back(cameraMatrix);
 
         Mat distCoeffs(5,1,DataType<double>::type);
@@ -115,7 +111,7 @@ int main() {
 
     cout << resolution[0] << " x " << resolution[1] << endl;
 
-    int numCameras = cameraIDs.size();
+    const int numCameras = cameraIDs.size();
 
     vector<VideoCapture> cameras;
 
@@ -184,8 +180,8 @@ int main() {
     auto ntInst = NetworkTableInstance::GetDefault();
     auto ntTable = ntInst.GetTable("fisheye");
 
-    array<array<DoubleArrayPublisher, 2>, numCameras> publishers;
-    array<IntegerPublisher, numCameras> idPublishers;
+    vector<vector<DoubleArrayPublisher>> publishers(numCameras);
+    vector<IntegerPublisher> idPublishers(numCameras);
     
     auto options = new nt::PubSubOptions();
     options->sendAll = true;
@@ -193,15 +189,19 @@ int main() {
 
     for(int i = 0; i < numCameras; i++) {
         for(int j = 0; j < 2; j++) {
-            string_view name{"Cam" + (i + 1) + ((i == 1) ? "Tvec" : "Rvec")};
+            string temp = string("Cam") + to_string(i + 1) + ((j == 0) ? string("Tvec") : string("Rvec"));
+            cout << temp << endl;
+            string_view name = temp;
             DoubleArrayTopic vecTopic = ntTable->GetDoubleArrayTopic(name);
-
+            cout << "pub " << i << j << endl; 
             vecTopic.SetPersistent(false);
             vecTopic.SetCached(false);
-
-            publishers[i][j] = vecTopic.Publish(*options);
+                
+            publishers[i].push_back(vecTopic.Publish(*options));
+            cout << publishers[i].size() << endl;
         }
-        string_view name{"Cam" + (i + 1) + "Ids"};
+        string temp = string("Cam") + to_string(i + 1) + string("Ids");
+        string_view name = temp;
         IntegerTopic idTopic = ntTable->GetIntegerTopic(name);
 
         idTopic.SetPersistent(false);
@@ -222,11 +222,11 @@ int main() {
 
     //==================Main Loop Setup==================
 
-    array<Mat, numCameras> images;
+    vector<Mat> images(numCameras);
     vector<vector<vector<vector<double>>>> outputs(numCameras);
     vector<vector<int>> idsOutput(numCameras);
-    array<int64_t, numCameras> timestamps;
-    array<thread, numCameras> threads;
+    vector<int64_t> timestamps(numCameras);
+    vector<thread> threads(numCameras);
 
     //==================Main Loop==================
 
@@ -239,7 +239,7 @@ int main() {
             timestamps[a] = nt::Now();
 
             thread temp(findCamPose, images[a], cameraMatricies[a], cameraDistCoeffs[a], objPoints, ref(detectParams), ref(dict), ref(outputs[a]), ref(idsOutput[a]));
-            threads[a] = temp;
+            threads[a] = move(temp);
         }
 
         for (int a = 0; a < numCameras; a++) {
