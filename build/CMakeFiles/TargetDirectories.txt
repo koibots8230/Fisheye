@@ -1,3 +1,0 @@
-/root/Fisheye/build/CMakeFiles/fisheye.dir
-/root/Fisheye/build/CMakeFiles/edit_cache.dir
-/root/Fisheye/build/CMakeFiles/rebuild_cache.dir
