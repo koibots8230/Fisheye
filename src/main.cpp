@@ -29,7 +29,7 @@ using namespace nt;
 
 void doVision(Mat frame, Mat cameraMatrix, Mat distCoeffs, Mat objPoints, aruco::DetectorParameters params, aruco::Dictionary dict, vector<vector<vector<double>>>& out, vector<int>& idsOut) {
     aruco::ArucoDetector detector(dict, params);
-    
+
     vector<int> ids;
     vector<vector<Point2f>> corners;
     vector<vector<Point2f>> rejectedCorners;
@@ -52,13 +52,15 @@ void doVision(Mat frame, Mat cameraMatrix, Mat distCoeffs, Mat objPoints, aruco:
         out.resize(i + 1);
         out[i].resize(2); 
 
-        solvePnP(objPoints, corners.at(0), cameraMatrix, distCoeffs, rvec, tvec, false, SOLVEPNP_IPPE_SQUARE);
-        
+        solvePnPRansac(objPoints, corners.at(i), cameraMatrix, distCoeffs, rvec, tvec, false, 100, 8, 0.99, noArray(), SOLVEPNP_IPPE_SQUARE);
+        //cout << tvec.at<double>(0) << ", " << tvec.at<double>(1) << ", " << tvec.at<double>(2) << endl;
         Rodrigues(rvec, rmat);
-
-	rmat = rmat.t();
+        //cout << atan2(rmat.at<double>(2, 1), rmat.at<double>(2, 2)) << endl; 
+        transpose(rmat, rmat);
 	tvec = -rmat * tvec;
-        
+        //cout << atan2(rmat.at<double>(2, 1), rmat.at<double>(2, 2)) << endl;
+
+        //cout << "after: " << tvec.at<double>(0) << ", " << tvec.at<double>(1) << ", " << tvec.at<double>(2) << endl; 
         for(int a = 0; a < 3; a++) {
             out[i][0].push_back(tvec.at<double>(a));
             for(int b = 0; b < 3; b++) {
@@ -76,14 +78,19 @@ void readJSON(vector<Mat> &cameraMatricies, vector<Mat> &cameraDistCoeffs, vecto
         if (camera["id"] != "None") {
             camIDs.push_back(camera["id"]);
 
-            Mat cameraMatrix(3,3,DataType<double>::type);
-            setIdentity(cameraMatrix);
+            Mat cameraMatrix;
+            cameraMatrix = Mat::zeros(3, 3, DataType<double>::type);
         
             cameraMatrix.at<double>(0, 0) = camera["matrix"]["fx"];
             cameraMatrix.at<double>(0, 2) = camera["matrix"]["cx"];
             cameraMatrix.at<double>(1, 1) = camera["matrix"]["fy"];
             cameraMatrix.at<double>(1, 2) = camera["matrix"]["cy"];
-
+            cameraMatrix.at<double>(2, 2) = 1;
+            for (int a = 0; a < 3; a++) {
+            for (int b = 0; b < 3; b++) {
+            cout << cameraMatrix.at<double>(a, b) << " ";
+            }
+            cout << endl;}cout << endl; 
             cameraMatricies.push_back(cameraMatrix);
 
             Mat distCoeffs(5,1,DataType<double>::type);
@@ -99,30 +106,21 @@ void readJSON(vector<Mat> &cameraMatricies, vector<Mat> &cameraDistCoeffs, vecto
 }
 
 int main() {
-    Mat image1, image2;
+    Mat image1, image2, image3;
 
     vector<Mat> cameraMatricies;
     vector<Mat> cameraDistCoeffs;
     vector<String> cameraIDs;
 
     readJSON(cameraMatricies, cameraDistCoeffs, cameraIDs);
-
-    double tagSizeMeters = 0.17272;
-
-    Mat objPoints(4, 3, DataType<double>::type);
-
-    objPoints.row(0).col(0) = -tagSizeMeters/2;
-    objPoints.row(0).col(1) = tagSizeMeters/2;
-    objPoints.row(0).col(2) = 0;
-    objPoints.row(1).col(0) = tagSizeMeters/2;
-    objPoints.row(1).col(1) = tagSizeMeters/2;
-    objPoints.row(1).col(2) = 0;
-    objPoints.row(2).col(0) = tagSizeMeters/2;
-    objPoints.row(2).col(1) = -tagSizeMeters/2;
-    objPoints.row(2).col(2) = 0;
-    objPoints.row(3).col(0) = -tagSizeMeters/2;
-    objPoints.row(3).col(1) = -tagSizeMeters/2;
-    objPoints.row(3).col(2) = 0;
+    cout << cameraDistCoeffs[0].at<double>(0) << endl;
+    double tagSizeMeters = 0.1651;
+    
+    Mat objPoints(4, 1, CV_32FC3);
+    objPoints.ptr<Vec3f>(0)[0] = Vec3f(-tagSizeMeters/2.f, tagSizeMeters/2.f, 0);
+    objPoints.ptr<Vec3f>(0)[1] = Vec3f(tagSizeMeters/2.f, tagSizeMeters/2.f, 0);
+    objPoints.ptr<Vec3f>(0)[2] = Vec3f(tagSizeMeters/2.f, -tagSizeMeters/2.f, 0);
+    objPoints.ptr<Vec3f>(0)[3] = Vec3f(-tagSizeMeters/2.f, -tagSizeMeters/2.f, 0);
 
     vector<VideoCapture> cameras;
 
@@ -130,6 +128,10 @@ int main() {
         VideoCapture cap;
         cap.open(cameraIDs[i]);
         if (cap.isOpened()) {
+            cap.set(CAP_PROP_FOURCC, VideoWriter::fourcc('M', 'J', 'P', 'G'));
+            cap.set(CAP_PROP_FRAME_WIDTH, 1280);
+            cap.set(CAP_PROP_FRAME_HEIGHT, 720);
+            cout << cap.get(CAP_PROP_FRAME_WIDTH) << ", " << cap.get(CAP_PROP_FRAME_HEIGHT) << endl;
             cameras.push_back(cap);
         } else {
             cerr << "ERROR: Camera " << i << " could not be opened!" << endl;
@@ -139,8 +141,9 @@ int main() {
 
     aruco::DetectorParameters detectParams = aruco::DetectorParameters();
     detectParams.cornerRefinementMethod = aruco::CORNER_REFINE_APRILTAG;
-    detectParams.cornerRefinementMaxIterations = 10;
+    detectParams.cornerRefinementMaxIterations = 20;
     detectParams.useAruco3Detection = true;
+    detectParams.aprilTagDeglitch = 10;
     
     aruco::Dictionary dict = aruco::getPredefinedDictionary(aruco::DICT_APRILTAG_36h11);
 
@@ -187,40 +190,41 @@ int main() {
     });
 
     vector<vector<vector<vector<double>>>> outputs;
-    outputs.resize(2);
+    outputs.resize(3);
     vector<vector<int>> idsOutput;
-    idsOutput.resize(2);
-    vector<int64_t> timestamps(2);
+    idsOutput.resize(3);
+    vector<int64_t> timestamps(3);
 
-    vector<int> cameraSet = {0, 1, 2};
     while(true) {
-        outputs = {{{{0}, {0}}}, {{{0}, {0}}}};
-        idsOutput = {{0}, {0}};
-          
-        cameras[cameraSet[0]].read(image1);
-        timestamps[0] = nt::Now() + nt::GetServerTimeOffset(nt::GetDefaultInstance()).value_or(0);
-        cameras[cameraSet[1]].read(image2);
-        timestamps[1] = nt::Now() + nt::GetServerTimeOffset(nt::GetDefaultInstance()).value_or(0);
+        outputs = {{{{0}, {0}}}, {{{0}, {0}}}, {{{0}, {0}}}};
+        idsOutput = {{0}, {0}, {0}};
+  
+        cameras[0].read(image1);
+        timestamps[0] = nt::Now();
+        cameras[1].read(image2);
+        timestamps[1] = nt::Now();
+        cameras[2].read(image3);
+        timestamps[2] = nt::Now();
 
-        thread thread1(doVision, image1, cameraMatricies[cameraSet[0]], cameraDistCoeffs[cameraSet[0]], objPoints, ref(detectParams), ref(dict), ref(outputs[0]), ref(idsOutput[0]));
+        thread thread1(doVision, image1, cameraMatricies[0], cameraDistCoeffs[0], objPoints, ref(detectParams), ref(dict), ref(outputs[0]), ref(idsOutput[0]));
 
-        thread thread2(doVision, image2, cameraMatricies[cameraSet[1]], cameraDistCoeffs[cameraSet[1]], objPoints, ref(detectParams), ref(dict), ref(outputs[1]), ref(idsOutput[1]));
-
+        thread thread2(doVision, image2, cameraMatricies[1], cameraDistCoeffs[1], objPoints, ref(detectParams), ref(dict), ref(outputs[1]), ref(idsOutput[1]));
+        
+        thread thread3(doVision, image3, cameraMatricies[2], cameraDistCoeffs[2], objPoints, ref(detectParams), ref(dict), ref(outputs[2]), ref(idsOutput[2]));
+        
         thread1.join();
         thread2.join();
-        
-        if(nt::IsConnected(nt::GetDefaultInstance()) && timestamps[0] < 8.64e10) { 
-	    for(int a = 0; a < 2; a++) {
+        thread3.join();
+
+        if(nt::IsConnected(nt::GetDefaultInstance())) {
+	    for(int a = 0; a < 3; a++) {
                 for(int b = 0; b < outputs[a].size(); b++) {
-                    publishers[cameraSet[a]][0].Set(outputs[a][b][0], timestamps[a]);
-                    publishers[cameraSet[a]][1].Set(outputs[a][b][1], timestamps[a]);
-                    idPublishers[cameraSet[a]].Set(idsOutput[a][b], timestamps[a]);
+                    publishers[a][0].Set(outputs[a][b][0], timestamps[a]);
+                    publishers[a][1].Set(outputs[a][b][1], timestamps[a]);
+                    idPublishers[a].Set(idsOutput[a][b], timestamps[a]);
                 }
             }
-            cout << timestamps[0] << endl;
         }
-
-        rotate(cameraSet.begin(), cameraSet.begin() + 1, cameraSet.end());
     }
 
     return 1;
