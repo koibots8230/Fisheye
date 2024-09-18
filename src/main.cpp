@@ -69,6 +69,33 @@ void findCamPose(Mat frame, Mat cameraMatrix, Mat distCoeffs, Mat objPoints, aru
     idsOut = ids;
 }
 
+void runThread(VideoCapture camera, Mat cameraMatrix, Mat distCoeffs, Mat objPoints, aruco::DetectorParameters params, aruco::Dictionary dict, vector<DoubleArrayPublisher> vectorPublishers, IntegerPublisher idPublisher) {
+    Mat image;
+
+    vector<vector<vector<double>>> vectorOutputs;
+    vector<int> idOutputs;
+
+    int64_t timestamp;
+
+    vectorOutputs = {{{0}, {0}}};
+    idOutputs = {0};
+
+    while(true) {
+        camera.read(image);
+        timestamp = nt::Now();
+
+        findCamPose(image, cameraMatrix, distCoeffs, objPoints, ref(params), ref(dict), ref(vectorOutpus), ref(idOutputs));
+
+        if(nt::IsConnected(nt::GetDefaultInstance())) {
+            for(int a = 0; a < vectorOutputs.size(); a++) {
+                vectorPublishers[0].Set(vectorOutputs[a][0], timestamp);
+                vectorPublishers[1].Set(vectorOutputs[a][1], timestamp);
+                idPublisher.Set(idOutputs[a], timestamp);
+            }
+        }
+    }
+}
+
 void readCameraJSON(vector<Mat> &cameraMatricies, vector<Mat> &cameraDistCoeffs, vector<String> &camIDs, vector<int> &resolution) {
     ifstream camJSON("/root/Fisheye/config/cameras.json");
     nlohmann::json camConfig = nlohmann::json::parse(camJSON);
@@ -222,40 +249,14 @@ int main() {
 
     //==================Main Loop Setup==================
 
-    vector<Mat> images(numCameras);
-    vector<vector<vector<vector<double>>>> outputs(numCameras);
-    vector<vector<int>> idsOutput(numCameras);
-    vector<int64_t> timestamps(numCameras);
     vector<thread> threads(numCameras);
 
-    //==================Main Loop==================
-
-    while(true) {
-        for(int a = 0; a < numCameras; a++) {
-            outputs[a] = {{{0}, {0}}};
-            idsOutput[a] = {0};
-
-            cameras[a].read(images[a]);
-            timestamps[a] = nt::Now();
-
-            thread temp(findCamPose, images[a], cameraMatricies[a], cameraDistCoeffs[a], objPoints, ref(detectParams), ref(dict), ref(outputs[a]), ref(idsOutput[a]));
-            threads[a] = move(temp);
-        }
-
-        for (int a = 0; a < numCameras; a++) {
-            threads[a].join();
-        }
-
-        if(nt::IsConnected(nt::GetDefaultInstance())) {
-	        for(int a = 0; a < numCameras; a++) {
-                for(int b = 0; b < outputs[a].size(); b++) {
-                    publishers[a][0].Set(outputs[a][b][0], timestamps[a]);
-                    publishers[a][1].Set(outputs[a][b][1], timestamps[a]);
-                    idPublishers[a].Set(idsOutput[a][b], timestamps[a]);
-                }
-            }
-        }
+    for (int a = 0; a < numCameras; a++) {
+        thread temp(runThread, cameras[a], cameraMatricies[a], cameraDistCoeffs[a], objPoints, detectParams, dict, publishers[a], idPublishers[a]);
+        threads.push_back();
     }
+
+    while(true) {}
 
     return 1;
 }  
