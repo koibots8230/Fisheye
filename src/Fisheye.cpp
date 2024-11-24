@@ -122,7 +122,7 @@ void caclulatePriority(nlohmann::json threadConfig, vector<Camera>& cameras, vec
         threadConfig["minThreadsPerCamera"].get<int>();
     for (int i = 0; i < cameras.size(); i++) {
         cameras[i].threadset.totalThreads = (count(camsWithPriority.begin(), camsWithPriority.end(), i) > 0) ?
-            priorityThreads / camsWithPriority.size() : threadConfig["minThreadsPerCamera"].get<int>();
+            priorityThreads / camsWithPriority.size() : (camsWithPriority.size() == 0) ? threadConfig["defaultThreadsPerCamera"].get<int>() : threadConfig["minThreadsPerCamera"].get<int>();
     }
 }
 
@@ -163,7 +163,7 @@ int main() {
     for (int i = 0; i < cameraIDs.size(); i++) {
         cameras.emplace_back(cameraIDs[i], cameraMatricies[i], cameraDistCoeffs[i],
             std::move(tvecPublishers[i]), std::move(rmatPublishers[i]),
-            std::move(idPublishers[i]), objPoints, detectParams, dict, threadConfig["normalThreadsPerCamera"],
+            std::move(idPublishers[i]), objPoints, detectParams, dict, threadConfig["defaultThreadsPerCamera"],
             threadConfig["maxTagSightingsPerCamera"]);
     }
 
