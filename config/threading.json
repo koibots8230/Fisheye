@@ -1,0 +1,10 @@
+{
+  "totalThreads": 15,
+  "normalThreadsPerCamera": 3,
+  "minThreadsPerCamera": 2,
+
+  "maxTagSightingsPerCamera": 3,
+  "minTagSightingsForPriority": 2,
+
+  "minThreadOffsetMilliseconds": 10
+}

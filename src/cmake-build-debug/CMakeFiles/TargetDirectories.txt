@@ -1,0 +1,3 @@
+/home/koibot/CLionProjects/Fisheye/src/cmake-build-debug/CMakeFiles/fisheye.dir
+/home/koibot/CLionProjects/Fisheye/src/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/koibot/CLionProjects/Fisheye/src/cmake-build-debug/CMakeFiles/rebuild_cache.dir
