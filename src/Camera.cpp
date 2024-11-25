@@ -96,7 +96,7 @@ void Camera::runIteration() {
 
     if (apriltags.size() > 0 && threadset.tagSightings < threadset.maxTagSightings) {
         threadset.tagSightings += 1;
-    } else if (apriltags.empty()) {
+    } else if (apriltags.empty() && threadset.tagSightings != 0) {
         threadset.tagSightings -= 1;
     }
 
