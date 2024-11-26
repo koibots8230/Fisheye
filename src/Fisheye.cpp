@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <fstream>
 #include <functional>
+#include <future>
+
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core/hal/interface.h>
 #include <opencv2/core/matx.hpp>
@@ -17,7 +19,8 @@ using namespace cv;
 using namespace std;
 using namespace nt;
 
-void setupCameraValues(vector<Mat> &cameraMatricies, vector<Mat> &cameraDistCoeffs, vector<String> &camIDs, vector<int> &resolution) {
+void setupCameraValues(vector<Mat> &cameraMatricies, vector<Mat> &cameraDistCoeffs, vector<String> &camIDs,
+    vector<int> &resolution) {
     ifstream camJSON("/root/Fisheye/config/cameras.json");
     nlohmann::json camConfig = nlohmann::json::parse(camJSON);
     for (auto camera : camConfig["Cameras"]) {
@@ -77,8 +80,8 @@ aruco::DetectorParameters setupDetectorParameters(nlohmann::json detectorConfig)
     return detectParams;
 }
 
-void setupNetworkTables(int numCameras, vector<DoubleArrayPublisher>& tvecPublishers, vector<DoubleArrayPublisher>& rmatPublishers,
-    vector<IntegerPublisher>& idPublishers) {
+void setupNetworkTables(int numCameras, vector<DoubleArrayPublisher>& tvecPublishers,
+    vector<DoubleArrayPublisher>& rmatPublishers, vector<IntegerPublisher>& idPublishers) {
     ifstream ntJSON("/root/Fisheye/config/networkTables.json");
     nlohmann::json ntConfig = nlohmann::json::parse(ntJSON);
 
@@ -122,7 +125,8 @@ void caclulatePriority(nlohmann::json threadConfig, vector<Camera>& cameras, vec
         threadConfig["minThreadsPerCamera"].get<int>();
     for (int i = 0; i < cameras.size(); i++) {
         cameras[i].threadset.totalThreads = (count(camsWithPriority.begin(), camsWithPriority.end(), i) > 0) ?
-            priorityThreads / camsWithPriority.size() : (camsWithPriority.size() == 0) ? threadConfig["defaultThreadsPerCamera"].get<int>() : threadConfig["minThreadsPerCamera"].get<int>();
+            priorityThreads / camsWithPriority.size() : (camsWithPriority.size() == 0) ?
+                threadConfig["defaultThreadsPerCamera"].get<int>() : threadConfig["minThreadsPerCamera"].get<int>();
     }
 }
 
@@ -169,19 +173,21 @@ int main() {
 
     BS::thread_pool threadPool(threadConfig["totalThreads"]);
 
+    vector<vector<aruco::ArucoDetector>> availableDetectors(4);
+
     vector<int> camsWithPriority;
 
     while (true) {
         for (int a = 0; a < cameras.size(); a++) {
-            lock_guard<mutex> lock(*cameras[a].camMutex);
+            lock_guard<mutex> lock(*cameras[a].comMutex);
 
             if (cameras[a].threadset.tagSightings >= threadConfig["minTagSightingsForPriority"] &&
-                count(camsWithPriority.begin(), camsWithPriority.end(), a) == 0) {
+                ranges::count(camsWithPriority, a) == 0) {
                 camsWithPriority.push_back(a);
 
                 caclulatePriority(threadConfig, cameras, camsWithPriority);
             } else if (cameras[a].threadset.tagSightings < threadConfig["minTagSightingsForPriority"] &&
-                count(camsWithPriority.begin(), camsWithPriority.end(), a) > 0) {
+                ranges::count(camsWithPriority, a) > 0) {
                 camsWithPriority.erase(find(camsWithPriority.begin(), camsWithPriority.end(), a));
 
                 caclulatePriority(threadConfig, cameras, camsWithPriority);
@@ -189,8 +195,16 @@ int main() {
 
             if (cameras[a].threadset.activeThreads != cameras[a].threadset.totalThreads &&
                 (nt::Now() - cameras[a].threadset.lastThreadActivateTime) / 1000 >= threadConfig["minThreadOffsetMilliseconds"]) {
-                threadPool.detach_task([&cameras, a]{cameras[a].runIteration();});
-                cameras[a].threadset.lastThreadActivateTime = nt::Now();
+                if (!availableDetectors[a].empty()) {
+                    threadPool.detach_task([&cameras, a, availableDetectors]
+                        {cameras[a].runIteration(availableDetectors[a][availableDetectors.size() - 1], availableDetectors[a]);});
+                    cameras[a].threadset.lastThreadActivateTime = nt::Now();
+                } else {
+                    aruco::ArucoDetector detector(dict, detectParams);
+                    threadPool.detach_task([&cameras, a, detector, availableDetectors]
+                        {cameras[a].runIteration(detector, availableDetectors[a]);});
+                    cameras[a].threadset.lastThreadActivateTime = nt::Now();
+                }
             }
         }
     }

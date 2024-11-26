@@ -35,7 +35,7 @@ Camera::Camera(const string& id, Mat matrix, Mat distortionCoefficents, DoubleAr
     camMutex = new mutex();
 }
 
-vector<Apriltag> Camera::findTags(const Mat& image) const {
+vector<Apriltag> Camera::findTags(const Mat& image, const aruco::ArucoDetector& detector) const {
     vector<vector<Point2f>> corners;
     vector<int> ids;
     vector<vector<Point2f>> rejectedCorners;
@@ -67,12 +67,16 @@ Pose Camera::findRelativePose(const Apriltag& apriltag) const {
     return Pose(tvec, rmat);
 }
 
-void Camera::runIteration() {
+void Camera::runIteration(aruco::ArucoDetector detector, vector<aruco::ArucoDetector> availableDetectors) {
     Mat image;
+
+    unique_lock<mutex> imageLock(*camMutex);
     camera.read(image);
+    imageLock.unlock();
+
     int64_t timestamp = nt::Now();
 
-    vector<Apriltag> apriltags = findTags(image);
+    vector<Apriltag> apriltags = findTags(image, detector);
 
     for (const Apriltag& apriltag : apriltags) {
         Pose pose = findRelativePose(apriltag);
@@ -92,9 +96,11 @@ void Camera::runIteration() {
         idOut.Set(apriltag.id, timestamp);
     }
 
-    lock_guard<mutex> lock(*camMutex);
+    lock_guard<mutex> lock(*comMutex);
 
-    if (apriltags.size() > 0 && threadset.tagSightings < threadset.maxTagSightings) {
+    availableDetectors.push_back(move(detector));
+
+    if (!apriltags.empty() && threadset.tagSightings < threadset.maxTagSightings) {
         threadset.tagSightings += 1;
     } else if (apriltags.empty() && threadset.tagSightings != 0) {
         threadset.tagSightings -= 1;

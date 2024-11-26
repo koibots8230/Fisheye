@@ -19,25 +19,24 @@ class Camera {
             nt::DoubleArrayPublisher rmatOut, nt::IntegerPublisher idOut, cv::Mat objectPoints,
             cv::aruco::DetectorParameters detectParams, cv::aruco::Dictionary dictionary, int totalThreads, int maxTagSightings);
 
-        void runIteration();
+        void runIteration(cv::aruco::ArucoDetector detector, std::vector<cv::aruco::ArucoDetector> availableDetectors);
 
         CameraThreadset threadset;
 
         std::mutex* camMutex;
+        std::mutex* comMutex;
     private:
         cv::VideoCapture camera;
-        cv::Mat matrix;
-        cv::Mat distortionCoefficients;
+        cv::Mat const matrix;
+        cv::Mat const distortionCoefficients;
 
-        cv::Mat objectPoints;
-
-        cv::aruco::ArucoDetector detector;
+        cv::Mat const objectPoints;
 
         nt::DoubleArrayPublisher tvecOut;
         nt::DoubleArrayPublisher rmatOut;
         nt::IntegerPublisher idOut;
 
-        std::vector<Apriltag> findTags(const cv::Mat& image) const;
+        std::vector<Apriltag> findTags(const cv::Mat& image, const cv::aruco::ArucoDetector&) const;
 
         Pose findRelativePose(const Apriltag& apriltag) const;
 };
