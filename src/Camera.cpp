@@ -16,23 +16,33 @@ using namespace std;
 using namespace cv;
 using namespace nt;
 
-Camera::Camera(const string& id, Mat matrix, Mat distortionCoefficents, DoubleArrayPublisher tvecOut,
+Camera::Camera(string& id, vector<vector<double>> matrix, vector<double> distortionCoefficents, DoubleArrayPublisher tvecOut,
     DoubleArrayPublisher rmatOut, IntegerPublisher idOut, Mat objectPoints, aruco::DetectorParameters detectParams,
     aruco::Dictionary dict, int totalThreads, int maxTagSightings): threadset(totalThreads, maxTagSightings) {
     camera.open(id);
 
-    this->matrix = move(matrix);
-    this->distortionCoefficients = move(distortionCoefficients);
+    this->matrix = Mat::zeros(3, 3, DataType<double>::type);
+
+    for(int a = 0; a < 3; a++) {
+        for(int b = 0; b < 3; b++) {
+            this->matrix.at<double>(a, b) = matrix[a][b];
+        }
+    }
+
+    this->distortionCoefficients = Mat::zeros(5, 1, DataType<double>::type);
+
+    for(int a = 0; a < 5; a++) {
+        this->distortionCoefficients.at<double>(a) = distortionCoefficents[a];
+    }
 
     this->objectPoints = move(objectPoints);
-
-    detector = aruco::ArucoDetector(dict, detectParams);
 
     this->tvecOut = move(tvecOut);
     this->rmatOut = move(rmatOut);
     this->idOut = move(idOut);
 
     camMutex = new mutex();
+    comMutex = new mutex();
 }
 
 vector<Apriltag> Camera::findTags(const Mat& image, const aruco::ArucoDetector& detector) const {
@@ -67,12 +77,16 @@ Pose Camera::findRelativePose(const Apriltag& apriltag) const {
     return Pose(tvec, rmat);
 }
 
-void Camera::runIteration(aruco::ArucoDetector detector, vector<aruco::ArucoDetector> availableDetectors) {
+void Camera::runIteration(aruco::ArucoDetector detector) {
     Mat image;
 
     unique_lock<mutex> imageLock(*camMutex);
     camera.read(image);
     imageLock.unlock();
+
+    if(image.empty()) {
+        return;
+    }
 
     int64_t timestamp = nt::Now();
 

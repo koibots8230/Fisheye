@@ -19,30 +19,29 @@ using namespace cv;
 using namespace std;
 using namespace nt;
 
-void setupCameraValues(vector<Mat> &cameraMatricies, vector<Mat> &cameraDistCoeffs, vector<String> &camIDs,
+void setupCameraValues(vector<vector<vector<double>>> &cameraMatricies, vector<vector<double>> &cameraDistCoeffs, vector<String> &camIDs,
     vector<int> &resolution) {
     ifstream camJSON("/root/Fisheye/config/cameras.json");
     nlohmann::json camConfig = nlohmann::json::parse(camJSON);
     for (auto camera : camConfig["Cameras"]) {
         camIDs.push_back(camera["id"]);
 
-        cv::Mat cameraMatrix;
-        cameraMatrix = Mat::zeros(3, 3, DataType<double>::type);
+        vector<vector<double>> cameraMatrix(3, vector<double>(3, 0));
 
-        cameraMatrix.at<double>(0, 0) = camera["matrix"]["fx"];
-        cameraMatrix.at<double>(0, 2) = camera["matrix"]["cx"];
-        cameraMatrix.at<double>(1, 1) = camera["matrix"]["fy"];
-        cameraMatrix.at<double>(1, 2) = camera["matrix"]["cy"];
-        cameraMatrix.at<double>(2, 2) = 1;
+        cameraMatrix[0][0] = camera["matrix"]["fx"];
+        cameraMatrix[0][2] = camera["matrix"]["cx"];
+        cameraMatrix[1][1] = camera["matrix"]["fy"];
+        cameraMatrix[1][2] = camera["matrix"]["cy"];
+        cameraMatrix[2][2] = 1;
 
         cameraMatricies.push_back(cameraMatrix);
 
-        Mat distCoeffs(5,1,DataType<double>::type);
-        distCoeffs.at<double>(0) = camera["distCoeffs"]["k1"];
-        distCoeffs.at<double>(1) = camera["distCoeffs"]["k2"];
-        distCoeffs.at<double>(2) = camera["distCoeffs"]["p1"];
-        distCoeffs.at<double>(3) = camera["distCoeffs"]["p2"];
-        distCoeffs.at<double>(4) = camera["distCoeffs"]["k3"];
+        vector<double> distCoeffs(5);
+        distCoeffs[0] = camera["distCoeffs"]["k1"];
+        distCoeffs[1] = camera["distCoeffs"]["k2"];
+        distCoeffs[2] = camera["distCoeffs"]["p1"];
+        distCoeffs[3] = camera["distCoeffs"]["p2"];
+        distCoeffs[4] = camera["distCoeffs"]["k3"];
 
         cameraDistCoeffs.push_back(distCoeffs);
     }
@@ -93,7 +92,7 @@ void setupNetworkTables(int numCameras, vector<DoubleArrayPublisher>& tvecPublis
     options->keepDuplicates = true;
 
     for (int i = 0; i < numCameras; i++) {
-        DoubleArrayTopic tvecTopic = ntTable->GetDoubleArrayTopic("/camera" + to_string(i) + "tvec");
+        DoubleArrayTopic tvecTopic = ntTable->GetDoubleArrayTopic("/camera" + to_string(i) + "/tvec");
         tvecTopic.SetPersistent(false);
         tvecTopic.SetCached(false);
         tvecPublishers.push_back(tvecTopic.Publish(*options));
@@ -128,11 +127,12 @@ void caclulatePriority(nlohmann::json threadConfig, vector<Camera>& cameras, vec
             priorityThreads / camsWithPriority.size() : (camsWithPriority.size() == 0) ?
                 threadConfig["defaultThreadsPerCamera"].get<int>() : threadConfig["minThreadsPerCamera"].get<int>();
     }
-}
+    cout << cameras[0].threadset.totalThreads << endl;
+	}
 
 int main() {
-    vector<Mat> cameraMatricies;
-    vector<Mat> cameraDistCoeffs;
+    vector<vector<vector<double>>> cameraMatricies;
+    vector<vector<double>> cameraDistCoeffs;
     vector<String> cameraIDs;
     vector<int> resolution(2);
 
@@ -173,14 +173,11 @@ int main() {
 
     BS::thread_pool threadPool(threadConfig["totalThreads"]);
 
-    vector<vector<aruco::ArucoDetector>> availableDetectors(4);
-
     vector<int> camsWithPriority;
 
     while (true) {
         for (int a = 0; a < cameras.size(); a++) {
             lock_guard<mutex> lock(*cameras[a].comMutex);
-
             if (cameras[a].threadset.tagSightings >= threadConfig["minTagSightingsForPriority"] &&
                 ranges::count(camsWithPriority, a) == 0) {
                 camsWithPriority.push_back(a);
@@ -195,14 +192,16 @@ int main() {
 
             if (cameras[a].threadset.activeThreads != cameras[a].threadset.totalThreads &&
                 (nt::Now() - cameras[a].threadset.lastThreadActivateTime) / 1000 >= threadConfig["minThreadOffsetMilliseconds"]) {
-                if (!availableDetectors[a].empty()) {
-                    threadPool.detach_task([&cameras, a, availableDetectors]
-                        {cameras[a].runIteration(availableDetectors[a][availableDetectors.size() - 1], availableDetectors[a]);});
+                if (cameras[a].availableDetectors.size() != 0) {
+                    threadPool.detach_task([&cameras, a]
+                        {cameras[a].runIteration(cameras[a].availableDetectors[
+                            cameras[a].availableDetectors.size() - 1]);});
+                    cameras[a].availableDetectors.erase(cameras[a].availableDetectors.end() - 1);
                     cameras[a].threadset.lastThreadActivateTime = nt::Now();
                 } else {
                     aruco::ArucoDetector detector(dict, detectParams);
-                    threadPool.detach_task([&cameras, a, detector, availableDetectors]
-                        {cameras[a].runIteration(detector, availableDetectors[a]);});
+                    threadPool.detach_task([&cameras, a, detector]
+                        {cameras[a].runIteration(detector);});
                     cameras[a].threadset.lastThreadActivateTime = nt::Now();
                 }
             }
