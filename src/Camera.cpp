@@ -45,7 +45,7 @@ Camera::Camera(string& id, vector<vector<double>> matrix, vector<double> distort
     comMutex = new mutex();
 }
 
-vector<Apriltag> Camera::findTags(const Mat& image, const aruco::ArucoDetector& detector) const {
+vector<Apriltag> Camera::findTags(Mat& image, aruco::ArucoDetector& detector) {
     vector<vector<Point2f>> corners;
     vector<int> ids;
     vector<vector<Point2f>> rejectedCorners;
@@ -53,7 +53,7 @@ vector<Apriltag> Camera::findTags(const Mat& image, const aruco::ArucoDetector& 
     detector.detectMarkers(image, corners, ids, rejectedCorners);
 
     vector<Apriltag> apriltags;
-
+    cout << ids.size() << endl;
     for (int a = 0; a < ids.size(); a++) {
         apriltags.emplace_back(corners[a], ids[a]);
     }
@@ -61,7 +61,7 @@ vector<Apriltag> Camera::findTags(const Mat& image, const aruco::ArucoDetector& 
     return apriltags;
 }
 
-Pose Camera::findRelativePose(const Apriltag& apriltag) const {
+Pose Camera::findRelativePose(const Apriltag& apriltag) {
     Mat rvec(3,1,DataType<double>::type), tvec(3,1,DataType<double>::type);
 
     solvePnP(objectPoints, apriltag.corners, matrix, distortionCoefficients,
@@ -78,20 +78,22 @@ Pose Camera::findRelativePose(const Apriltag& apriltag) const {
 }
 
 void Camera::runIteration(aruco::ArucoDetector detector) {
+    cout << "Run iteration called" << endl;
     Mat image;
 
     unique_lock<mutex> imageLock(*camMutex);
     camera.read(image);
     imageLock.unlock();
-
+    cout << "Got image" << endl;
     if(image.empty()) {
+        cout << "Bad" << endl;
         return;
     }
 
     int64_t timestamp = nt::Now();
-
+    cout << "Finding tags" << endl;
     vector<Apriltag> apriltags = findTags(image, detector);
-
+    cout << "Found tags " << apriltags.size() << endl;
     for (const Apriltag& apriltag : apriltags) {
         Pose pose = findRelativePose(apriltag);
 
@@ -109,8 +111,8 @@ void Camera::runIteration(aruco::ArucoDetector detector) {
         rmatOut.Set(rmat, timestamp);
         idOut.Set(apriltag.id, timestamp);
     }
-
-    lock_guard<mutex> lock(*comMutex);
+    cout << "Comms stuff" << endl;
+    unique_lock<mutex> lock(*comMutex);
 
     availableDetectors.push_back(move(detector));
 
@@ -121,4 +123,7 @@ void Camera::runIteration(aruco::ArucoDetector detector) {
     }
 
     threadset.activeThreads -= 1;
+
+    lock.unlock();
+    cout << "Done" << endl;
 }

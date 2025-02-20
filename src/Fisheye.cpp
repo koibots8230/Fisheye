@@ -127,8 +127,7 @@ void caclulatePriority(nlohmann::json threadConfig, vector<Camera>& cameras, vec
             priorityThreads / camsWithPriority.size() : (camsWithPriority.size() == 0) ?
                 threadConfig["defaultThreadsPerCamera"].get<int>() : threadConfig["minThreadsPerCamera"].get<int>();
     }
-    cout << cameras[0].threadset.totalThreads << endl;
-	}
+}
 
 int main() {
     vector<vector<vector<double>>> cameraMatricies;
@@ -176,8 +175,11 @@ int main() {
     vector<int> camsWithPriority;
 
     while (true) {
+        cout << "Tasks running " << threadPool.get_tasks_running() << endl;
+        threadPool.wait();
         for (int a = 0; a < cameras.size(); a++) {
-            lock_guard<mutex> lock(*cameras[a].comMutex);
+            unique_lock<mutex> lock(*cameras[a].comMutex);
+            cout << "Sending camera" << a << endl;
             if (cameras[a].threadset.tagSightings >= threadConfig["minTagSightingsForPriority"] &&
                 ranges::count(camsWithPriority, a) == 0) {
                 camsWithPriority.push_back(a);
@@ -189,7 +191,6 @@ int main() {
 
                 caclulatePriority(threadConfig, cameras, camsWithPriority);
             }
-
             if (cameras[a].threadset.activeThreads != cameras[a].threadset.totalThreads &&
                 (nt::Now() - cameras[a].threadset.lastThreadActivateTime) / 1000 >= threadConfig["minThreadOffsetMilliseconds"]) {
                 if (cameras[a].availableDetectors.size() != 0) {
@@ -205,6 +206,8 @@ int main() {
                     cameras[a].threadset.lastThreadActivateTime = nt::Now();
                 }
             }
+            lock.unlock();
+            cout << "Sent camera " << a << endl;
         }
     }
 }

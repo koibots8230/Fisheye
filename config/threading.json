@@ -1,7 +1,7 @@
 {
-  "totalThreads": 15,
-  "defaultThreadsPerCamera": 3,
-  "minThreadsPerCamera": 2,
+  "totalThreads": 2,
+  "defaultThreadsPerCamera": 1,
+  "minThreadsPerCamera": 1,
 
   "maxTagSightingsPerCamera": 3,
   "minTagSightingsForPriority": 2,

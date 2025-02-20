@@ -38,9 +38,9 @@ class Camera {
         nt::DoubleArrayPublisher rmatOut;
         nt::IntegerPublisher idOut;
 
-        std::vector<Apriltag> findTags(const cv::Mat& image, const cv::aruco::ArucoDetector&) const;
+        std::vector<Apriltag> findTags(cv::Mat& image,cv::aruco::ArucoDetector&);
 
-        Pose findRelativePose(const Apriltag& apriltag) const;
+        Pose findRelativePose(const Apriltag& apriltag);
 };
 
 
