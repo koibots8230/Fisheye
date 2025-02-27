@@ -3,7 +3,6 @@
 #include <functional>
 #include <future>
 
-#include <opencv2/calib3d.hpp>
 #include <opencv2/core/hal/interface.h>
 #include <opencv2/core/matx.hpp>
 #include <opencv2/objdetect/aruco_detector.hpp>
@@ -174,12 +173,17 @@ int main() {
 
     vector<int> camsWithPriority;
 
+    vector<vector<aruco::ArucoDetector>> detectors;
+    vector<vector<future<aruco::ArucoDetector>>> detectorFutures;
+
     while (true) {
-        cout << "Tasks running " << threadPool.get_tasks_running() << endl;
-        threadPool.wait();
         for (int a = 0; a < cameras.size(); a++) {
+            for (int b = 0; b < detectorFutures[a].size(); b++) {
+                if (detectorFutures[a][b].wait_for(chrono::seconds(0)) == std::future_status::ready) {
+                    detectors[a].push_back(detectorFutures[a][b].get());
+                }
+            }
             unique_lock<mutex> lock(*cameras[a].comMutex);
-            cout << "Sending camera" << a << endl;
             if (cameras[a].threadset.tagSightings >= threadConfig["minTagSightingsForPriority"] &&
                 ranges::count(camsWithPriority, a) == 0) {
                 camsWithPriority.push_back(a);
@@ -193,21 +197,13 @@ int main() {
             }
             if (cameras[a].threadset.activeThreads != cameras[a].threadset.totalThreads &&
                 (nt::Now() - cameras[a].threadset.lastThreadActivateTime) / 1000 >= threadConfig["minThreadOffsetMilliseconds"]) {
-                if (cameras[a].availableDetectors.size() != 0) {
-                    threadPool.detach_task([&cameras, a]
-                        {cameras[a].runIteration(cameras[a].availableDetectors[
-                            cameras[a].availableDetectors.size() - 1]);});
-                    cameras[a].availableDetectors.erase(cameras[a].availableDetectors.end() - 1);
-                    cameras[a].threadset.lastThreadActivateTime = nt::Now();
-                } else {
-                    aruco::ArucoDetector detector(dict, detectParams);
-                    threadPool.detach_task([&cameras, a, detector]
-                        {cameras[a].runIteration(detector);});
-                    cameras[a].threadset.lastThreadActivateTime = nt::Now();
-                }
+                aruco::ArucoDetector detector = detectors[a].empty() ?
+                    aruco::ArucoDetector(dict, detectParams) : detectors[a][detectors.size() - 1];
+
+                detectorFutures[a].push_back(threadPool.submit_task([&cameras, a, detector]
+                    {return cameras[a].runIteration(detector);}));
             }
             lock.unlock();
-            cout << "Sent camera " << a << endl;
         }
     }
 }

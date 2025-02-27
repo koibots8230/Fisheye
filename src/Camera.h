@@ -19,14 +19,12 @@ class Camera {
             nt::DoubleArrayPublisher rmatOut, nt::IntegerPublisher idOut, cv::Mat objectPoints,
             cv::aruco::DetectorParameters detectParams, cv::aruco::Dictionary dictionary, int totalThreads, int maxTagSightings);
 
-        void runIteration(cv::aruco::ArucoDetector detector);
+        cv::aruco::ArucoDetector runIteration(cv::aruco::ArucoDetector detector);
 
         CameraThreadset threadset;
 
         std::mutex* camMutex;
         std::mutex* comMutex;
-
-        std::vector<cv::aruco::ArucoDetector> availableDetectors;
     private:
         cv::VideoCapture camera;
         cv::Mat matrix;

@@ -77,23 +77,23 @@ Pose Camera::findRelativePose(const Apriltag& apriltag) {
     return Pose(tvec, rmat);
 }
 
-void Camera::runIteration(aruco::ArucoDetector detector) {
+aruco::ArucoDetector Camera::runIteration(aruco::ArucoDetector detector) {
     cout << "Run iteration called" << endl;
     Mat image;
 
     unique_lock<mutex> imageLock(*camMutex);
     camera.read(image);
     imageLock.unlock();
-    cout << "Got image" << endl;
+
     if(image.empty()) {
         cout << "Bad" << endl;
-        return;
+        return detector;
     }
 
     int64_t timestamp = nt::Now();
-    cout << "Finding tags" << endl;
+
     vector<Apriltag> apriltags = findTags(image, detector);
-    cout << "Found tags " << apriltags.size() << endl;
+
     for (const Apriltag& apriltag : apriltags) {
         Pose pose = findRelativePose(apriltag);
 
@@ -111,10 +111,8 @@ void Camera::runIteration(aruco::ArucoDetector detector) {
         rmatOut.Set(rmat, timestamp);
         idOut.Set(apriltag.id, timestamp);
     }
-    cout << "Comms stuff" << endl;
-    unique_lock<mutex> lock(*comMutex);
 
-    availableDetectors.push_back(move(detector));
+    unique_lock<mutex> lock(*comMutex);
 
     if (!apriltags.empty() && threadset.tagSightings < threadset.maxTagSightings) {
         threadset.tagSightings += 1;
@@ -125,5 +123,6 @@ void Camera::runIteration(aruco::ArucoDetector detector) {
     threadset.activeThreads -= 1;
 
     lock.unlock();
-    cout << "Done" << endl;
+
+    return detector;
 }
