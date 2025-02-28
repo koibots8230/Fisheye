@@ -15,9 +15,10 @@
 
 class Camera {
     public:
-        Camera(std::string& id, std::vector<std::vector<double>> matrix, std::vector<double> distortionCoefficents, nt::DoubleArrayPublisher tvecOut,
-            nt::DoubleArrayPublisher rmatOut, nt::IntegerPublisher idOut, cv::Mat objectPoints,
-            cv::aruco::DetectorParameters detectParams, cv::aruco::Dictionary dictionary, int totalThreads, int maxTagSightings);
+        Camera(std::string& id, std::vector<std::vector<double>> matrix, std::vector<double> distortionCoefficents,
+            std::vector<int> resolution, int fps, nt::DoubleArrayPublisher tvecOut,nt::DoubleArrayPublisher rmatOut,
+            nt::IntegerPublisher idOut, cv::Mat objectPoints, cv::aruco::DetectorParameters detectParams,
+            cv::aruco::Dictionary dictionary, int totalThreads, int maxTagSightings);
 
         cv::aruco::ArucoDetector runIteration(cv::aruco::ArucoDetector detector);
 

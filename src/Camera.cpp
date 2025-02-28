@@ -16,10 +16,15 @@ using namespace std;
 using namespace cv;
 using namespace nt;
 
-Camera::Camera(string& id, vector<vector<double>> matrix, vector<double> distortionCoefficents, DoubleArrayPublisher tvecOut,
-    DoubleArrayPublisher rmatOut, IntegerPublisher idOut, Mat objectPoints, aruco::DetectorParameters detectParams,
-    aruco::Dictionary dict, int totalThreads, int maxTagSightings): threadset(totalThreads, maxTagSightings) {
+Camera::Camera(string& id, vector<vector<double>> matrix, vector<double> distortionCoefficents, vector<int> resolution,
+    int fps, DoubleArrayPublisher tvecOut, DoubleArrayPublisher rmatOut, IntegerPublisher idOut, Mat objectPoints,
+    aruco::DetectorParameters detectParams, aruco::Dictionary dict, int totalThreads, int maxTagSightings):
+threadset(totalThreads, maxTagSightings) {
     camera.open(id);
+
+    camera.set(CAP_PROP_FRAME_WIDTH, resolution[0]);
+    camera.set(CAP_PROP_FRAME_HEIGHT, resolution[1]);
+    camera.set(CAP_PROP_FPS, fps);
 
     this->matrix = Mat::zeros(3, 3, DataType<double>::type);
 

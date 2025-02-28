@@ -19,7 +19,7 @@ using namespace std;
 using namespace nt;
 
 void setupCameraValues(vector<vector<vector<double>>> &cameraMatricies, vector<vector<double>> &cameraDistCoeffs, vector<String> &camIDs,
-    vector<int> &resolution) {
+    vector<vector<int>> &resolutions, vector<int> &cameraFPSs) {
     ifstream camJSON("/root/Fisheye/config/cameras.json");
     nlohmann::json camConfig = nlohmann::json::parse(camJSON);
     for (auto camera : camConfig["Cameras"]) {
@@ -43,9 +43,14 @@ void setupCameraValues(vector<vector<vector<double>>> &cameraMatricies, vector<v
         distCoeffs[4] = camera["distCoeffs"]["k3"];
 
         cameraDistCoeffs.push_back(distCoeffs);
+
+        vector<int> resolution(2);
+        resolution[0] = camera["frameWidth"];
+        resolution[1] = camera["frameHeight"];
+        resolutions.push_back(resolution);
+
+        cameraFPSs.push_back(camera["fps"]);
     }
-    resolution[0] = camConfig["frameWidth"];
-    resolution[1] = camConfig["frameHeight"];
 }
 
 aruco::DetectorParameters setupDetectorParameters(nlohmann::json detectorConfig) {
@@ -132,9 +137,10 @@ int main() {
     vector<vector<vector<double>>> cameraMatricies;
     vector<vector<double>> cameraDistCoeffs;
     vector<String> cameraIDs;
-    vector<int> resolution(2);
+    vector<vector<int>> resolutions;
+    vector<int> cameraFPSs;
 
-    setupCameraValues(cameraMatricies, cameraDistCoeffs, cameraIDs, resolution);
+    setupCameraValues(cameraMatricies, cameraDistCoeffs, cameraIDs, resolutions, cameraFPSs);
 
     ifstream detectorJSON("/root/Fisheye/config/detector.json");
     nlohmann::json detectorConfig = nlohmann::json::parse(detectorJSON);
@@ -163,7 +169,7 @@ int main() {
     nlohmann::json threadConfig = nlohmann::json::parse(threadJSON);
 
     for (int i = 0; i < cameraIDs.size(); i++) {
-        cameras.emplace_back(cameraIDs[i], cameraMatricies[i], cameraDistCoeffs[i],
+        cameras.emplace_back(cameraIDs[i], cameraMatricies[i], cameraDistCoeffs[i], resolutions[i], cameraFPSs[i],
             std::move(tvecPublishers[i]), std::move(rmatPublishers[i]),
             std::move(idPublishers[i]), objPoints, detectParams, dict, threadConfig["defaultThreadsPerCamera"],
             threadConfig["maxTagSightingsPerCamera"]);
