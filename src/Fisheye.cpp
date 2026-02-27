@@ -21,6 +21,7 @@ using namespace nt;
 void setupCameraValues(vector<vector<vector<double>>> &cameraMatricies, vector<vector<double>> &cameraDistCoeffs, vector<String> &camIDs,
     vector<vector<int>> &resolutions, vector<int> &cameraFPSs) {
     ifstream camJSON("/root/Fisheye/config/cameras.json");
+
     nlohmann::json camConfig = nlohmann::json::parse(camJSON);
     for (auto camera : camConfig["Cameras"]) {
         camIDs.push_back(camera["id"]);
@@ -82,6 +83,7 @@ aruco::DetectorParameters setupDetectorParameters(nlohmann::json detectorConfig)
 
     return detectParams;
 }
+
 
 void setupNetworkTables(int numCameras, vector<DoubleArrayPublisher>& tvecPublishers,
     vector<DoubleArrayPublisher>& rmatPublishers, vector<IntegerPublisher>& idPublishers) {
@@ -152,6 +154,10 @@ int main() {
     objPoints.ptr<Vec3f>(0)[1] = Vec3f(tagSizeMeters/2.f, tagSizeMeters/2.f, 0);
     objPoints.ptr<Vec3f>(0)[2] = Vec3f(tagSizeMeters/2.f, -tagSizeMeters/2.f, 0);
     objPoints.ptr<Vec3f>(0)[3] = Vec3f(-tagSizeMeters/2.f, -tagSizeMeters/2.f, 0);
+    //make a function that sets up a nested list for each separate april tag pair based on the x distance from each other:
+    //for april tag pairs, copy obj points into a new nested list in a vector, and then based on the distance passed in args appends a new set of four points to it
+    ifstream aprilTagJSON("/root/Fisheye/config/apriltagPairs.json");
+    nlohmann::json aprilTagPairs = nlohmann::json::parse(aprilTagJSON);
 
     aruco::DetectorParameters detectParams = setupDetectorParameters(detectorConfig);
 
