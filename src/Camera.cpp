@@ -9,7 +9,6 @@
 #include <ntcore/networktables/DoubleArrayTopic.h>
 #include <ntcore/networktables/IntegerTopic.h>
 #include <ntcore/networktables/NetworkTableInstance.h>
-
 #include "Utils.h"
 
 using namespace std;

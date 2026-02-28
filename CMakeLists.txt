@@ -1,13 +1,21 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
+project(FisheyeVision)
 
-project(Vision)
+set(CMAKE_CXX_STANDARD 17)
+
+# Find OpenCV
 find_package(OpenCV REQUIRED)
-find_package(wpilib REQUIRED)
-
-include_directories(${wpilib_INCLUDE_DIRS})
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-add_executable(fisheye src/Fisheye.cpp src/Camera.cpp src/Utils.cpp)
+# Source files
+set(SOURCES
+        src/Fisheye.cpp
+        src/Camera.cpp
+        src/Utils.cpp
+        src/main.cpp
+)
 
-target_link_libraries(fisheye ${OpenCV_LIBS})
-target_link_libraries(fisheye ntcore)
+add_executable(FisheyeVision ${SOURCES})
+
+# Link OpenCV
+target_link_libraries(FisheyeVision ${OpenCV_LIBS})

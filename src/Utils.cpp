@@ -2,7 +2,7 @@
 #include <fstream>
 #include <vector>
 #include <opencv2/core/types.hpp>
-#include <json.hpp>
+#include "../include/json.hpp"
 
 using namespace std;
 using namespace cv;
@@ -26,7 +26,7 @@ CameraThreadset::CameraThreadset(int totalThreads, int maxTagSightings) {
 }
 
 Mat objPointsOffset(float xOffset, float yOffset) {
-
+    float tagSizeMeters = 0.5;
     Mat newObjPoints(8, 1, CV_32FC3);
     newObjPoints.ptr<Vec3f>(0)[0] = Vec3f(-tagSizeMeters/2.f, tagSizeMeters/2.f, 0);
     newObjPoints.ptr<Vec3f>(0)[1] = Vec3f(tagSizeMeters/2.f, tagSizeMeters/2.f, 0);
@@ -56,4 +56,5 @@ vector<int> findPairs(vector<int> ids){
 //      }
 //  }
 //  return that return vector
+    return vector<int>{xOffset2, xOffset2};
 }
