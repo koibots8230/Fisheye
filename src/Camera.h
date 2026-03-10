@@ -6,9 +6,9 @@
 #include <mutex>
 
 #include <opencv2/opencv.hpp>
-#include <ntcore/NetworkTables/NetworkTableInstance.h>
-#include <ntcore/NetworkTables/DoubleArrayTopic.h>
-#include <ntcore/NetworkTables/IntegerTopic.h>
+#include <ntcore/networktables/NetworkTableInstance.h>
+#include <ntcore/networktables/DoubleArrayTopic.h>
+#include <ntcore/networktables/IntegerTopic.h>
 #include "Utils.h"
 
 class Camera {
