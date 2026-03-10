@@ -1,13 +1,15 @@
 #include "Camera.h"
-#include <string>
-#include "../include/json.hpp"
 
-#include <utility>
-#include <opencv2/opencv.hpp>
+#include <string>
+
 #include <opencv2/core/matx.hpp>
+#include <opencv2/opencv.hpp>
+#include <utility>
+
 #include <ntcore/networktables/NetworkTableInstance.h>
 #include <ntcore/networktables/DoubleArrayTopic.h>
 #include <ntcore/networktables/IntegerTopic.h>
+
 #include "Utils.h"
 
 using namespace std;
@@ -60,14 +62,14 @@ vector<Apriltag> Camera::findTags(Mat& image, aruco::ArucoDetector& detector) {
     for (int a = 0; a < ids.size(); a++) {
         apriltags.emplace_back(corners[a], ids[a]);
     }
-    
+
     return apriltags;
 }
 
-Pose Camera::findRelativePose(const vector<Apriltag&> apriltags) {
+Pose Camera::findRelativePose(const Apriltag& apriltag) {
     Mat rvec(3,1,DataType<double>::type), tvec(3,1,DataType<double>::type);
 
-    solvePnP(objectPoints, apriltags[].corners, matrix, distortionCoefficients,
+    solvePnP(objectPoints, apriltag.corners, matrix, distortionCoefficients,
         rvec, tvec, false, SOLVEPNP_IPPE_SQUARE);
 
     Mat rmat(3,3,DataType<double>::type);
