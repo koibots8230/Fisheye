@@ -6,9 +6,9 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/matx.hpp>
 
-#include "/Users/1020125/CLionProjects/Fisheye/include/allwpilib/ntcore/src/main/native/include/networktables/NetworkTableInstance.h"
-#include "/Users/1020125/CLionProjects/Fisheye/include/allwpilib/ntcore/src/generated/main/native/include/networktables/DoubleArrayTopic.h"
-#include "/Users/1020125/CLionProjects/Fisheye/include/allwpilib/ntcore/src/generated/main/native/include/networktables/IntegerTopic.h"
+#include <NetworkTableInstance.h>
+#include <DoubleArrayTopic.h>
+#include <IntegerTopic.h>
 #include "Utils.h"
 
 using namespace std;
