@@ -6,9 +6,9 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/matx.hpp>
 
-#include <NetworkTableInstance.h>
-#include <DoubleArrayTopic.h>
-#include <IntegerTopic.h>
+#include <ntcore/NetworkTables/NetworkTableInstance.h>
+#include <ntcore/NetworkTables/DoubleArrayTopic.h>
+#include <ntcore/NetworkTables/IntegerTopic.h>
 #include "Utils.h"
 
 using namespace std;
