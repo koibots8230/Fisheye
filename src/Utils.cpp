@@ -54,7 +54,7 @@ int findPairs(vector<int> ids){
         for (int u = 0; u < ids.size(); u++){
             if (aprilTagPairFullJson["AprilTagPairs"][i]["Tag 1"] == ids[u]){
                 for (int c = 0; c < ids.size(); c++){ 
-                    if (aprilTagPairFullJson["AprilTagPairs"][i]["Tag 2"] == ids[c]){
+                    if (aprilTagPairFullJson["AprilTagPairs"][f]["Tag 2"] == ids[c]){
                         pairsPresent.emplace_back(f+1);
                     }
                 }
