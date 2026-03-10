@@ -94,6 +94,8 @@ Mat putItAllTogetherNow(vector<int> idsII){
         return objPointsOffset(Offsets[0], Offsets[1]);
     }
     Mat newObjPoints(8, 1, CV_32FC3);
+    float tagSizeMeters = 0.5
+    
     newObjPoints.ptr<Vec3f>(0)[0] = Vec3f(-tagSizeMeters/2.f, tagSizeMeters/2.f, 0);
     newObjPoints.ptr<Vec3f>(0)[1] = Vec3f(tagSizeMeters/2.f, tagSizeMeters/2.f, 0);
     newObjPoints.ptr<Vec3f>(0)[2] = Vec3f(tagSizeMeters/2.f, -tagSizeMeters/2.f, 0);
