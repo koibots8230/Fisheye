@@ -39,11 +39,28 @@ Mat objPointsOffset(float xOffset, float yOffset) {
     return newObjPoints;
 }
 
-vector<int> findPairs(vector<int> ids){
+int findPairs(vector<int> ids){
     ifstream aprilTagPairListJsonFile("root/Fisheye/config/apriltagPairs.json");
     nlohmann::json aprilTagPairFullJson = nlohmann::json::parse(aprilTagPairListJsonFile);
-    int xOffset2 = aprilTagPairFullJson["AprilTagPairs"][2]["xOffset"];//  create a padded array with the amount of april tags pairs there are total
-//  for pairs in json list{
+//  int xOffset2 = aprilTagPairFullJson["AprilTagPairs"][2]["xOffset"];
+	int numOfPairs = sizeof(aprilTagPairFullJson["AprilTagPairs"]);
+	// vector<bool> paddedVector;
+	// for (int i = 0; i < numOfPairs; i++){
+	// 	paddedVector.emplace_back(0);
+	// }
+    vector<int> pairsPresent;
+//  create a padded array with the amount of april tags pairs there are total
+	for (int f = 0; f < numOfPairs; f++){//  for pairs in json list{
+        for (int u = 0; u < ids.size(); u++){
+            if (aprilTagPairFullJson["AprilTagPairs"][i]["Tag 1"] == ids[u]){
+                for (int c = 0; c < ids.size(); c++){ 
+                    if (aprilTagPairFullJson["AprilTagPairs"][i]["Tag 2"] == ids[c]){
+                        pairsPresent.emplace_back(f+1);
+                    }
+                }
+            }
+	    }
+    }
 //      if an id given in args is present in the "Tag 1" slot{
 //          if an id given in args is present in the "Tag 2" slot{
 //              replace the padding at the pair number - 1 slot with a 1
@@ -56,5 +73,30 @@ vector<int> findPairs(vector<int> ids){
 //      }
 //  }
 //  return that return vector
-    return vector<int>{xOffset2, xOffset2};
+    if(&pairsPresent[0]){
+        return pairsPresent[0];
+    } else{
+        return 0;
+    }
+}
+vector<float> xyOffsetsForGivenPair(int pairNumber){
+    ifstream aprilTagPairListJsonFile("root/Fisheye/config/apriltagPairs.json");
+    nlohmann::json aprilTagPairFullJson = nlohmann::json::parse(aprilTagPairListJsonFile);
+    vector<float> returnVectorII = {aprilTagPairFullJson["AprilTagPairs"][pairNumber]["xOffset"], aprilTagPairFullJson["AprilTagPairs"][pairNumber]["yOffset"]}; //hence starts the shitpost variables :D
+    return returnVectorII;
+}
+
+Mat putItAllTogetherNow(vector<int> idsII){
+    int pairOperating = findPairs(idsII);
+    
+    if (pairOperating != 0){
+        vector<float> Offsets = xyOffsetsForGivenPair(pairOperating);
+        return objPointsOffset(Offsets[0], Offsets[1]);
+    }
+    Mat newObjPoints(8, 1, CV_32FC3);
+    newObjPoints.ptr<Vec3f>(0)[0] = Vec3f(-tagSizeMeters/2.f, tagSizeMeters/2.f, 0);
+    newObjPoints.ptr<Vec3f>(0)[1] = Vec3f(tagSizeMeters/2.f, tagSizeMeters/2.f, 0);
+    newObjPoints.ptr<Vec3f>(0)[2] = Vec3f(tagSizeMeters/2.f, -tagSizeMeters/2.f, 0);
+    newObjPoints.ptr<Vec3f>(0)[3] = Vec3f(-tagSizeMeters/2.f, -tagSizeMeters/2.f, 0);
+    return newObjPoints;
 }

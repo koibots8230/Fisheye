@@ -1,14 +1,14 @@
 #include "Camera.h"
 #include <string>
-#include <nlohmann/json.hpp>
+#include "../include/json.hpp"
 
 #include <utility>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/matx.hpp>
 
-#include <ntcore/networktables/DoubleArrayTopic.h>
-#include <ntcore/networktables/IntegerTopic.h>
-#include <ntcore/networktables/NetworkTableInstance.h>
+#include "/Users/1020125/CLionProjects/Fisheye/include/allwpilib/ntcore/src/main/native/include/networktables/NetworkTableInstance.h"
+#include "/Users/1020125/CLionProjects/Fisheye/include/allwpilib/ntcore/src/generated/main/native/include/networktables/DoubleArrayTopic.h"
+#include "/Users/1020125/CLionProjects/Fisheye/include/allwpilib/ntcore/src/generated/main/native/include/networktables/IntegerTopic.h"
 #include "Utils.h"
 
 using namespace std;
@@ -61,7 +61,7 @@ vector<Apriltag> Camera::findTags(Mat& image, aruco::ArucoDetector& detector) {
     for (int a = 0; a < ids.size(); a++) {
         apriltags.emplace_back(corners[a], ids[a]);
     }
-
+    
     return apriltags;
 }
 

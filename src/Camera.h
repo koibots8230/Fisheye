@@ -7,9 +7,9 @@
 
 #include <opencv2/opencv.hpp>
 
-#include <ntcore/networktables/NetworkTableInstance.h>
-#include <ntcore/networktables/DoubleArrayTopic.h>
-#include <ntcore/networktables/IntegerTopic.h>
+#include "../include/allwpilib/ntcore/src/generated/main/native/include/networktables/DoubleArrayTopic.h"
+#include "../include/allwpilib/ntcore/src/generated/main/native/include/networktables/IntegerTopic.h"
+#include "../include/allwpilib/ntcore/src/main/native/include/networktables/NetworkTableInstance.h"
 
 #include "Utils.h"
 
