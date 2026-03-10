@@ -52,7 +52,7 @@ int findPairs(vector<int> ids){
 //  create a padded array with the amount of april tags pairs there are total
 	for (int f = 0; f < numOfPairs; f++){//  for pairs in json list{
         for (int u = 0; u < ids.size(); u++){
-            if (aprilTagPairFullJson["AprilTagPairs"][i]["Tag 1"] == ids[u]){
+            if (aprilTagPairFullJson["AprilTagPairs"][f]["Tag 1"] == ids[u]){
                 for (int c = 0; c < ids.size(); c++){ 
                     if (aprilTagPairFullJson["AprilTagPairs"][f]["Tag 2"] == ids[c]){
                         pairsPresent.emplace_back(f+1);
