@@ -5,7 +5,7 @@
 #include "main.h"
 
 #include <iostream>
-#include <opencv2/core/types.cpp>
+#include <opencv2/core/matx.hpp>
 #include <ostringstream>
 #include "Utils.h"
 int main(int argc, char* argv[]) {
