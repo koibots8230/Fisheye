@@ -6,7 +6,7 @@
 
 #include <iostream>
 #include <opencv2/core/mat.hpp>
-#include <ostringstream>
+#include <sstream>
 #include "Utils.h"
 int main(int argc, char* argv[]) {
     if(argv[1] != nullptr) {
