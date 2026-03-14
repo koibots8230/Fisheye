@@ -1,7 +1,7 @@
 #include "Utils.h"
 #include <fstream>
 #include <vector>
-#include <opencv2/core/matx.hpp>
+#include <opencv2/core/mat.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include "../include/json.hpp"
 
