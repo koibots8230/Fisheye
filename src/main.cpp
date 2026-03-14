@@ -5,8 +5,7 @@
 #include "main.h"
 
 #include <iostream>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/core/types.hpp>
+#include <opencv2/core/types.cpp>
 #include <ostringstream>
 #include "Utils.h"
 int main(int argc, char* argv[]) {
