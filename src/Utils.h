@@ -28,9 +28,9 @@ struct CameraThreadset {
     CameraThreadset(int totalThreads, int maxTagSightings);
 };
 
-Mat objPointsOffset(float xOffset, float yOffset);
+cv::Mat objPointsOffset(float xOffset, float yOffset);
 
-int findPairs(vector<int> ids);
+int findPairs(std::vector<int> ids);
 
 
 #endif //UTILS_H
