@@ -42,7 +42,7 @@ Mat objPointsOffset(float xOffset, float yOffset) {
 }
 
 int findPairs(vector<int> ids){
-    ifstream aprilTagPairListJsonFile("root/Fisheye/config/apriltagPairs.json");
+    ifstream aprilTagPairListJsonFile("./config/apriltagPairs.json");
     nlohmann::json aprilTagPairFullJson = nlohmann::json::parse(aprilTagPairListJsonFile);
 //  int xOffset2 = aprilTagPairFullJson["AprilTagPairs"][2]["xOffset"];
 	int numOfPairs = sizeof(aprilTagPairFullJson["AprilTagPairs"]);
