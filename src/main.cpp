@@ -5,7 +5,7 @@
 #include "main.h"
 
 #include <iostream>
-#include <opencv2/core/mat.hpp>
+#include <opencv2/core/core.hpp>
 #include <sstream>
 #include "Utils.h"
 int main() {
