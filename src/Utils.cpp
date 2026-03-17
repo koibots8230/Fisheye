@@ -42,7 +42,7 @@ Mat objPointsOffset(float xOffset, float yOffset) {
 }
 
 int findPairs(vector<int> ids){
-    ifstream aprilTagPairListJsonFile("root/Fisheye/config/apriltagPairs.json");
+    ifstream aprilTagPairListJsonFile(".../config/apriltagPairs.json");
     nlohmann::json aprilTagPairFullJson = nlohmann::json::parse(aprilTagPairListJsonFile);
 //  int xOffset2 = aprilTagPairFullJson["AprilTagPairs"][2]["xOffset"];
 	int numOfPairs = aprilTagPairFullJson["AprilTagPairs"].size();
@@ -82,7 +82,7 @@ int findPairs(vector<int> ids){
     }
 }
 vector<float> xyOffsetsForGivenPair(int pairNumber){
-    ifstream aprilTagPairListJsonFile("root/Fisheye/config/apriltagPairs.json");
+    ifstream aprilTagPairListJsonFile(".../config/apriltagPairs.json");
     nlohmann::json aprilTagPairFullJson = nlohmann::json::parse(aprilTagPairListJsonFile);
     vector<float> returnVectorII = {aprilTagPairFullJson["AprilTagPairs"][pairNumber]["xOffset"], aprilTagPairFullJson["AprilTagPairs"][pairNumber]["yOffset"]}; //hence starts the shitpost variables :D
     return returnVectorII;
