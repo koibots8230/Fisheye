@@ -42,7 +42,7 @@ Mat objPointsOffset(float xOffset, float yOffset) {
 }
 
 int findPairs(vector<int> ids){
-    ifstream aprilTagPairListJsonFile(".../config/apriltagPairs.json");
+    ifstream aprilTagPairListJsonFile("config/apriltagPairs.json");
     nlohmann::json aprilTagPairFullJson = nlohmann::json::parse(aprilTagPairListJsonFile);
 //  int xOffset2 = aprilTagPairFullJson["AprilTagPairs"][2]["xOffset"];
 	int numOfPairs = aprilTagPairFullJson["AprilTagPairs"].size();
@@ -57,7 +57,7 @@ int findPairs(vector<int> ids){
             if (aprilTagPairFullJson["AprilTagPairs"][f]["Tag 1"] == ids[u]){
                 for (int c = 0; c < ids.size(); c++){ 
                     if (aprilTagPairFullJson["AprilTagPairs"][f]["Tag 2"] == ids[c]){
-                        pairsPresent.emplace_back(f);
+                        pairsPresent.emplace_back(f+1);
                     }
                 }
             }
@@ -82,7 +82,7 @@ int findPairs(vector<int> ids){
     }
 }
 vector<float> xyOffsetsForGivenPair(int pairNumber){
-    ifstream aprilTagPairListJsonFile(".../config/apriltagPairs.json");
+    ifstream aprilTagPairListJsonFile("config/apriltagPairs.json");
     nlohmann::json aprilTagPairFullJson = nlohmann::json::parse(aprilTagPairListJsonFile);
     vector<float> returnVectorII = {aprilTagPairFullJson["AprilTagPairs"][pairNumber]["xOffset"], aprilTagPairFullJson["AprilTagPairs"][pairNumber]["yOffset"]}; //hence starts the shitpost variables :D
     return returnVectorII;
