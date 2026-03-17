@@ -37,7 +37,7 @@ Mat objPointsOffset(float xOffset, float yOffset) {
     newObjPoints.ptr<Vec3f>(0)[5] = Vec3f((tagSizeMeters/2.f)+xOffset, (tagSizeMeters/2.f)+yOffset, 0);
     newObjPoints.ptr<Vec3f>(0)[6] = Vec3f((tagSizeMeters/2.f)+xOffset, (-tagSizeMeters/2.f)+yOffset, 0);
     newObjPoints.ptr<Vec3f>(0)[7] = Vec3f((-tagSizeMeters/2.f)+xOffset, (-tagSizeMeters/2.f)+yOffset, 0);
-    imwrite("image.png", newObjPoints);
+    imwrite("./image.png", newObjPoints);
 	return newObjPoints;
 }
 
