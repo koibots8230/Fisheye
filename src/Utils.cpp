@@ -89,6 +89,11 @@ vector<float> xyOffsetsForGivenPair(int pairNumber){
 }
 
 Mat putItAllTogetherNow(vector<int> idsII){
+    ifstream aprilTagPairListJsonFile("config/apriltagPairs.json");
+
+    if (!aprilTagPairListJsonFile.is_open()) {
+        cout << "FAILED TO OPEN JSON FILE" << endl;
+    }
     int pairOperating = findPairs(idsII);
     
     if (pairOperating != 0){
