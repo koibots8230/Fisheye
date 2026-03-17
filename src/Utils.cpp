@@ -92,7 +92,7 @@ Mat putItAllTogetherNow(vector<int> idsII){
     ifstream aprilTagPairListJsonFile("config/apriltagPairs.json");
 
     if (!aprilTagPairListJsonFile.is_open()) {
-        cout << "FAILED TO OPEN JSON FILE" << endl;
+        std::cout << "FAILED TO OPEN JSON FILE" << std::endl;
     }
     int pairOperating = findPairs(idsII);
     
