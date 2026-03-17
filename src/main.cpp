@@ -9,7 +9,7 @@
 #include <sstream>
 #include "Utils.h"
 int main() {
-    cv::Mat oneRow = objPointsOffset(argv[3], argv[4]).reshape(0,1);    // Treat as vector
+    cv::Mat oneRow = objPointsOffset(2, 0.5).reshape(0,1);    // Treat as vector
     std::ostringstream os;
     os << oneRow;                             // Put to the stream
     std::string asStr = os.str();
