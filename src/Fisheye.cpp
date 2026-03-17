@@ -148,17 +148,6 @@ int main() {
     nlohmann::json detectorConfig = nlohmann::json::parse(detectorJSON);
 
     float tagSizeMeters = detectorConfig["tagSizeMeters"];
-
-    Mat objPoints(4, 1, CV_32FC3);
-    objPoints.ptr<Vec3f>(0)[0] = Vec3f(-tagSizeMeters/2.f, tagSizeMeters/2.f, 0);
-    objPoints.ptr<Vec3f>(0)[1] = Vec3f(tagSizeMeters/2.f, tagSizeMeters/2.f, 0);
-    objPoints.ptr<Vec3f>(0)[2] = Vec3f(tagSizeMeters/2.f, -tagSizeMeters/2.f, 0);
-    objPoints.ptr<Vec3f>(0)[3] = Vec3f(-tagSizeMeters/2.f, -tagSizeMeters/2.f, 0);
-    //make a function that sets up a nested list for each separate april tag pair based on the x distance from each other:
-    //for april tag pairs, copy obj points into a new nested list in a vector, and then based on the distance passed in args appends a new set of four points to it
-    ifstream aprilTagJSON("/root/Fisheye/config/apriltagPairs.json");
-    nlohmann::json aprilTagPairs = nlohmann::json::parse(aprilTagJSON);
-
     aruco::DetectorParameters detectParams = setupDetectorParameters(detectorConfig);
 
     aruco::Dictionary dict = aruco::getPredefinedDictionary(aruco::DICT_APRILTAG_36h11);
