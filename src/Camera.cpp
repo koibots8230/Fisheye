@@ -1,6 +1,7 @@
 #include "Camera.h"
 
 #include <string>
+#include <fstream>
 
 #include <opencv2/core/matx.hpp>
 #include <opencv2/opencv.hpp>
@@ -9,7 +10,7 @@
 #include <ntcore/networktables/NetworkTableInstance.h>
 #include <ntcore/networktables/DoubleArrayTopic.h>
 #include <ntcore/networktables/IntegerTopic.h>
-
+#include "../include/json.hpp"
 #include "Utils.h"
 
 using namespace std;
@@ -66,12 +67,15 @@ vector<Apriltag> Camera::findTags(Mat& image, aruco::ArucoDetector& detector) {
     return apriltags;
 }
 
-Pose Camera::findRelativePose(const Apriltag& apriltag) {
+Pose Camera::findRelativePose(const vector<Point2f> aprilTagCorners, Mat objPoints) {
     Mat rvec(3,1,DataType<double>::type), tvec(3,1,DataType<double>::type);
-
-    solvePnP(objectPoints, apriltag.corners, matrix, distortionCoefficients,
+	if(aprilTagCorners.size() == 4){
+    solvePnP(objPoints, aprilTagCorners, matrix, distortionCoefficients,
         rvec, tvec, false, SOLVEPNP_IPPE_SQUARE);
-
+	}else {
+		solvePnP(objPoints, aprilTagCorners, matrix, distortionCoefficients,
+    	rvec, tvec, false, SOLVEPNP_ITERATIVE);
+	}
     Mat rmat(3,3,DataType<double>::type);
 
     Rodrigues(rvec, rmat);
@@ -98,10 +102,39 @@ aruco::ArucoDetector Camera::runIteration(aruco::ArucoDetector detector) {
     int64_t timestamp = nt::Now();
 
     vector<Apriltag> apriltags = findTags(image, detector);
-
+    ifstream pairjson("config/apriltagPairs.json");
+    nlohmann::json pairjson_array = nlohmann::json::parse(pairjson);
+	vector<int> ids;
+	for(int a =0; a < apriltags.size(); a++){
+		ids.emplace_back(apriltags[a].id);
+	}
+	Mat defaultObjPoints(4, 1, CV_32FC3);
+    float tagSizeMeters = 0.1651;
+	defaultObjPoints.ptr<Vec3f>(0)[0] = Vec3f(-tagSizeMeters/2.f, tagSizeMeters/2.f, 0);
+   	defaultObjPoints.ptr<Vec3f>(0)[1] = Vec3f(tagSizeMeters/2.f, tagSizeMeters/2.f, 0);
+   	defaultObjPoints.ptr<Vec3f>(0)[2] = Vec3f(tagSizeMeters/2.f, -tagSizeMeters/2.f, 0);
+   	defaultObjPoints.ptr<Vec3f>(0)[3] = Vec3f(-tagSizeMeters/2.f, -tagSizeMeters/2.f, 0);
+    int pairPresent = findPairs(ids);
     for (const Apriltag& apriltag : apriltags) {
-        Pose pose = findRelativePose(apriltag);
+		Pose pose;
+        bool pairOrNone = false;
+		if (pairPresent != 0){
+		if (apriltag.id == pairjson_array["AprilTagPairs"][pairPresent]["Tag 1"]){
+			for (int a = 0; a < apriltags.size(); a++){
+				if(apriltags[a].id == pairjson_array["AprilTagPairs"][pairPresent]["Tag 2"]){
+					vector<Point2f> combined = apriltag.corners;
+combined.insert(combined.end(),
+                apriltags[a].corners.begin(),
+                apriltags[a].corners.end());
+					pose = findRelativePose(combined, putItAllTogetherNow(ids));
+					pairOrNone = true;
+				}
+			}}
+		}
 
+        if(pairOrNone == false) {
+			pose = findRelativePose(apriltag.corners, defaultObjPoints);
+		}
         vector<double> tvec;
         vector<double> rmat;
 

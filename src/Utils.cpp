@@ -38,7 +38,6 @@ Mat objPointsOffset(float xOffset, float yOffset) {
     newObjPoints.ptr<Vec3f>(0)[5] = Vec3f((tagSizeMeters/2.f)+xOffset, (tagSizeMeters/2.f)+yOffset, 0);
     newObjPoints.ptr<Vec3f>(0)[6] = Vec3f((tagSizeMeters/2.f)+xOffset, (-tagSizeMeters/2.f)+yOffset, 0);
     newObjPoints.ptr<Vec3f>(0)[7] = Vec3f((-tagSizeMeters/2.f)+xOffset, (-tagSizeMeters/2.f)+yOffset, 0);
-    imwrite("./image.png", newObjPoints);
 	return newObjPoints;
 }
 
@@ -76,7 +75,7 @@ int findPairs(vector<int> ids){
 //      }
 //  }
 //  return that return vector
-    if(&pairsPresent[0]){
+    if(pairsPresent.size() != 0){
         return pairsPresent[0];
     } else{
         return 0;
@@ -90,11 +89,7 @@ vector<float> xyOffsetsForGivenPair(int pairNumber){
 }
 
 Mat putItAllTogetherNow(vector<int> idsII){
-    ifstream aprilTagPairListJsonFile("config/apriltagPairs.json");
 
-    if (!aprilTagPairListJsonFile.is_open()) {
-        std::cout << "FAILED TO OPEN JSON FILE" << std::endl;
-    }
     int pairOperating = findPairs(idsII);
     
     if (pairOperating != 0){
@@ -102,7 +97,7 @@ Mat putItAllTogetherNow(vector<int> idsII){
         return objPointsOffset(Offsets[0], Offsets[1]);
     }
     Mat newObjPoints(8, 1, CV_32FC3);
-    float tagSizeMeters = 0.5;
+    float tagSizeMeters = 0.1651;
 
     newObjPoints.ptr<Vec3f>(0)[0] = Vec3f(-tagSizeMeters/2.f, tagSizeMeters/2.f, 0);
     newObjPoints.ptr<Vec3f>(0)[1] = Vec3f(tagSizeMeters/2.f, tagSizeMeters/2.f, 0);
@@ -110,3 +105,4 @@ Mat putItAllTogetherNow(vector<int> idsII){
     newObjPoints.ptr<Vec3f>(0)[3] = Vec3f(-tagSizeMeters/2.f, -tagSizeMeters/2.f, 0);
     return newObjPoints;
 }
+
